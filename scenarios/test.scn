@@ -6,12 +6,3 @@ location LAX
 
 location JFK
 
-flight er001
-	LAX 0530 to JFK 0930
-	crew A
-	aircraft A
-
-flight er002
-	LAX 0630 to JFK 1030
-	crew B
-	aircraft B
