@@ -3,6 +3,7 @@ class aircraft:
     def __init__(self,ref,tail):
         self.ref = ref
         self.tail = tail
+        self.location = None
     def __str__(self):
         return self.id
 
@@ -33,6 +34,7 @@ class person:
         self.id = ident
         self.ref = ref #used for parsing only
         self.role = role
+        self.location = None
     def __str__(self):
         return self.id
 

@@ -80,7 +80,7 @@ class parser:
         #third pass gets manifests and locations
         for item in obs:
             if item[0].find("manifest") != -1:
-                ref = item[0].split("manifest")[1]
+                local_ref = item[0].split("manifest")[1]
                 include = []
                 for i in range(1,len(item)):
                     if item[i].find("person") != -1:
@@ -89,7 +89,7 @@ class parser:
                     elif item[i].find("group") != -1:
                         ref = item[i].split("group")[1]
                         include += self.group_by_ref(ref).people
-                self.manifests.append(manifest(ref,include))
+                self.manifests.append(manifest(local_ref,include))
             elif item[0].find("location") != -1:
                 name = item[0].split("location")[1]
                 local_aircraft = []
@@ -116,7 +116,47 @@ class parser:
                         local_group = self.group_by_ref(ref)
                         local_passengers += local_group.people
                     #cargo, etc
-                self.locations.append(location(name,local_aircraft,local_flight_crew,local_cabin_crew,local_passengers,local_cargo))
+                temp_location = location(name,local_aircraft,local_flight_crew,local_cabin_crew,local_passengers,local_cargo)
+                self.locations.append(temp_location)
+                for item in local_aircraft:
+                    item.location = temp_location
+                for item in local_flight_crew:
+                    item.location = temp_location
+                for item in local_cabin_crew:
+                    item.location = temp_location
+                for item in local_passengers:
+                    item.location = temp_location
+
+        #last pass for flights
+        for item in obs:
+            if item[0].find("flight") != -1:
+                ident = item[0].split("flight")[1]
+                local_dept_location = None
+                local_dept_time = None
+                local_arrive_location = None
+                local_arrive_time = None
+                local_aircraft = None
+                local_manifest = None
+                for i in range(1,len(item)):
+                    if item[i].find("departure_location") != -1:
+                        loc_ref = item[i].split("departure_location")[1]
+                        local_dept_location = self.location_by_ref(loc_ref)
+                    elif item[i].find("departure_time") != -1:
+                        local_dept_time = item[i].split("departure_time")[1]
+                    elif item[i].find("arrival_location") != -1:
+                        loc_ref = item[i].split("arrival_location")[1]
+                        local_arrive_location = self.location_by_ref(loc_ref)
+                    elif item[i].find("arrival_time") != -1:
+                        local_arrive_time = item[i].split("arrival_time")[1]
+                    elif item[i].find("aircraft") != -1:
+                        local_aircraft = self.aircraft_by_ref(item[i].split("aircraft")[1])
+                    elif item[i].find("manifest") != -1:
+                        local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
+                self.flights.append(flight(ident,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
+                        
+                    
+                
+                
                                      
                         
     def group_by_ref(self,ref):
@@ -136,6 +176,18 @@ class parser:
             if aircraft.ref == ref:
                 return aircraft
         print("couldn't find aircraft %s" % (ref))
+        
+    def location_by_ref(self,ref):
+        for location in self.locations:
+            if location.id == ref:
+                return location
+        print("couldn't find location %s" % (ref))
+
+    def manifest_by_ref(self,ref):
+        for manifest in self.manifests:
+            if manifest.ref == ref:
+                return manifest
+        print("couldn't find manifest %s" % (ref))
     
     #splits a list by strings that aren't indented
     def split(self,raw):
