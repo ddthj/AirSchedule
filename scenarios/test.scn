@@ -2,12 +2,11 @@ location LAX
 	aircraft
 		aircraft A
 		aircraft B
-	people
+	passengers
 		group A
 		group B
-		passenger A
 	flight_crew
-		person A
+		person C
 	cabin_crew
 		person B
 		
@@ -59,10 +58,7 @@ person A
 	itinerary A
 	
 person B
-	role pilot
-	
+	role attendant
+
 person C
 	role pilot
-	
-
-

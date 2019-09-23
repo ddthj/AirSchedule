@@ -7,9 +7,9 @@ class gen:
     def get(self,role):
         number = "{:04d}".format(self.person)
         self.person +=1
-        if role == "flight_crew":
+        if role == "pilot":
             return "fc"+number
-        elif role == "cabin_crew":
+        elif role == "attendant":
             return "cc"+number
         else:
             return "px"+number
@@ -58,7 +58,7 @@ class parser:
                     if item[i].find("role") != -1:
                         role = item[i].split("role")[1]
                     elif item[i].find("itinerary") != -1:
-                        itinerary_ref = item[i].split("itinerary")[1]       
+                        itinerary_ref = item[i].split("itinerary")[1]
                 self.people.append(person(ref,self.gen.get(role),role,itinerary_ref))
                 
             elif item[0].find("group") != -1:
@@ -88,21 +88,35 @@ class parser:
                         include.append(self.person_by_ref(ref))
                     elif item[i].find("group") != -1:
                         ref = item[i].split("group")[1]
-                        #include += self.group_by_ref(ref).people
+                        include += self.group_by_ref(ref).people
                 self.manifests.append(manifest(ref,include))
             elif item[0].find("location") != -1:
                 name = item[0].split("location")[1]
-                '''
-                aircraft = []
-                flight_crew = []
-                cabin_crew = []
-                passengers = []
-                cargo = []
-                '''
-                temp = [x for x in item if x.find("\t\t")]
+                local_aircraft = []
+                local_flight_crew = []
+                local_cabin_crew = []
+                local_passengers = []
+                local_cargo = []
+                temp = [x for x in item if x.find("\t\t") != -1]
                 for i in range(len(temp)):
-                    if temp[i].find("aircraft"):
-                        pass
+                    if temp[i].find("aircraft") != -1:
+                        ref = temp[i].split("aircraft")[1]
+                        local_aircraft.append(self.aircraft_by_ref(ref))
+                    elif temp[i].find("person") != -1:
+                        ref = temp[i].split("person")[1]
+                        local_person = self.person_by_ref(ref)
+                        if local_person.role == "pilot":
+                            local_flight_crew.append(local_person)
+                        elif local_person.role == "attendant":
+                            local_cabin_crew.append(local_person)
+                        else:
+                            local_passengers.append(local_person)
+                    elif temp[i].find("group") != -1:
+                        ref = temp[i].split("group")[1]
+                        local_group = self.group_by_ref(ref)
+                        local_passengers += local_group.people
+                    #cargo, etc
+                self.locations.append(location(name,local_aircraft,local_flight_crew,local_cabin_crew,local_passengers,local_cargo))
                                      
                         
     def group_by_ref(self,ref):
@@ -116,6 +130,12 @@ class parser:
             if person.ref == ref:
                 return person
         print("couldn't find person %s" % (ref))
+
+    def aircraft_by_ref(self,ref):
+        for aircraft in self.aircraft:
+            if aircraft.ref == ref:
+                return aircraft
+        print("couldn't find aircraft %s" % (ref))
     
     #splits a list by strings that aren't indented
     def split(self,raw):
@@ -125,7 +145,7 @@ class parser:
             if raw[j].find("\t") == -1:
                 obs.append(raw[i:j])
                 i=j
-        obs.append(raw[i:j])
+        obs.append(raw[i:j+1])
         return obs
                 
     #reads file, puts each valid line into a list

@@ -72,9 +72,9 @@ class location:
     def __str__(self):
         msg = str(self.id) + "\n"
         msg += "Aircraft: %s" % str( len(self.aircraft))
-        msg += "Pilots: %s" % str( len(self.flight_crew))
-        msg += "Attendants: %s" % str( len(self.cabin_crew))
-        msg += "Passengers: %s" % str( len(self.passengers))
+        msg += "\nPilots: %s" % str( len(self.flight_crew))
+        msg += "\nAttendants: %s" % str( len(self.cabin_crew))
+        msg += "\nPassengers: %s" % str( len(self.passengers))
         return msg
 
 class scenario:
