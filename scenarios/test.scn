@@ -1,60 +1,68 @@
 location LAX
-	aircraft =
-		A,
-		B
-	people = 
-		passenger_group A,
-		passenger_group B,
+	aircraft
+		aircraft A
+		aircraft B
+	people
+		group A
+		group B
 		passenger A
+	flight_crew
+		person A
+	cabin_crew
+		person B
 		
-	
-
 location JFK
 
 flight er001
-	LAX 0530 to JFK 0930
+	departure_location LAX 
+	departure_time 0530 
+	arrival_location JFK
+	arrival_time 0930
 	aircraft A
 	manifest A
 
-
-
-
 //Defining manifests
 manifest A
-	A,B,C,
-	passenger_group A,
-	passenger_group B
-
-
+	person A
+	person B
+	person C
+	group A
+	group B
 
 //Defining itineraries
 itinerary B
-	LAX to JFK
-	JFK to MCO
+	er001
 
 itinerary A
-	LAX to JFK
-	
-	
+	er002
+
+//Defining aircraft
+aircraft A
+	tail N1234ER
+
+aircraft B
+	tail N567ER
 
 //Defining people
-passenger_group A
-	quantity = 100
-	itinerary = A
+group A
+	quantity 100
+	itinerary A
+	role passenger
 	
-passenger_group B
-	quantity = 50
-	itinerary = B
+group B
+	quantity 50
+	itinerary B
+	role passenger
 	
 person A
-	type = passenger/pilot/attendant
-	itinerary = A
+	role passenger
+	itinerary A
 	
 person B
-	type = pilot
+	role pilot
 	
 person C
-	type = pilot
+	role pilot
 	
 
 
