@@ -5,21 +5,21 @@ class aircraft:
         self.tail = tail
         self.location = None
     def __str__(self):
-        return self.id
+        return self.ref
 
 class group:
     def __init__(self,ref,people):
-        self.ref = ref #used for parsing only
+        self.ref = ref
         self.people = people
     def __str__(self):
-        return self.id
+        return self.ref
 
 class itinerary:
-    def __init__(self,ident,flights):
-        self.id = ident
-        self.flights = flights
+    def __init__(self,ref,flights):
+        self.ref = ref
+        self.flights = flights #not actually flight objects, just flight ref strings
     def __str__(self):
-        msg = self.id + "\n"
+        msg = self.ref + "\n"
         for item in self.flights:
             msg += item + "\n"
         return msg
@@ -31,8 +31,8 @@ class manifest:
     
 class person:
     def __init__(self,ref,ident,role,itinerary = None):
+        self.ref = ref
         self.id = ident
-        self.ref = ref #used for parsing only
         self.role = role
         self.location = None
     def __str__(self):
@@ -40,7 +40,7 @@ class person:
 
 class flight:
     def __init__(self,
-        ident,
+        ref,
         manifest,
         aircraft,
         departure_location,
@@ -48,7 +48,7 @@ class flight:
         arrival_location,
         arrival_time):
 
-        self.id = ident
+        self.ref = ref
         self.manifest = manifest
         self.aircraft = aircraft
         self.flight_crew = []
@@ -62,13 +62,13 @@ class flight:
         self.arrival_time = arrival_time
         self.status = "scheduled"
     def __str__(self):
-        msg = self.id
-        msg += "\n%s @%s to %s @%s" % (self.departure_location.id, self.departure_time, self.arrival_location.id,self.arrival_time)
+        msg = self.ref
+        msg += "\n%s @%s to %s @%s" % (self.departure_location.ref, self.departure_time, self.arrival_location.ref,self.arrival_time)
         return msg
         
 class location:
-    def __init__(self, ident, aircraft, flight_crew, cabin_crew, passengers, cargo):
-        self.id = ident
+    def __init__(self, ref, aircraft, flight_crew, cabin_crew, passengers, cargo):
+        self.ref = ref
         self.aircraft = aircraft
         self.flight_crew = flight_crew
         self.cabin_crew = cabin_crew
@@ -76,7 +76,7 @@ class location:
         self.cargo = cargo
         
     def __str__(self):
-        msg = str(self.id) + "\n"
+        msg = str(self.ref) + "\n"
         msg += "Aircraft: %s" % str( len(self.aircraft))
         msg += "\nPilots: %s" % str( len(self.flight_crew))
         msg += "\nAttendants: %s" % str( len(self.cabin_crew))

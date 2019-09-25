@@ -3,16 +3,15 @@ from objects import *
 class gen:
     def __init__(self):
         self.person = 0
-        x = itinerary("a",[])
     def get(self,role):
         number = "{:04d}".format(self.person)
-        self.person +=1
+        self.person += 1
         if role == "pilot":
-            return "fc"+number
+            return "fc" + number
         elif role == "attendant":
-            return "cc"+number
+            return "cc" + number
         else:
-            return "px"+number
+            return "px" + number
         
 class parser:
     def __init__(self,file):
@@ -36,9 +35,9 @@ class parser:
         #first pass defines all itineraries and aircraft
         for item in obs:
             if item[0].find("itinerary") != -1:
-                ident = item[0].split("itinerary")[1]
+                ref = item[0].split("itinerary")[1]
                 flights = [item[i].strip() for i in range(1,len(item))]
-                self.itineraries.append(itinerary(ident,flights))
+                self.itineraries.append(itinerary(ref,flights))
             elif item[0].find("aircraft") != -1:
                 ref = item[0].split("aircraft")[1]
                 tail = None
@@ -130,7 +129,7 @@ class parser:
         #last pass for flights
         for item in obs:
             if item[0].find("flight") != -1:
-                ident = item[0].split("flight")[1]
+                ref = item[0].split("flight")[1]
                 local_dept_location = None
                 local_dept_time = None
                 local_arrive_location = None
@@ -152,13 +151,8 @@ class parser:
                         local_aircraft = self.aircraft_by_ref(item[i].split("aircraft")[1])
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
-                self.flights.append(flight(ident,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
-                        
-                    
-                
-                
-                                     
-                        
+                self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
+                                                
     def group_by_ref(self,ref):
         for group in self.groups:
             if group.ref == ref:
@@ -179,7 +173,7 @@ class parser:
         
     def location_by_ref(self,ref):
         for location in self.locations:
-            if location.id == ref:
+            if location.ref == ref:
                 return location
         print("couldn't find location %s" % (ref))
 
