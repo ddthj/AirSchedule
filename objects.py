@@ -61,6 +61,10 @@ class flight:
         self.arrival_location = arrival_location
         self.arrival_time = arrival_time
         self.status = "scheduled"
+    def __str__(self):
+        msg = self.id
+        msg += "\n%s @%s to %s @%s" % (self.departure_location.id, self.departure_time, self.arrival_location.id,self.arrival_time)
+        return msg
         
 class location:
     def __init__(self, ident, aircraft, flight_crew, cabin_crew, passengers, cargo):
