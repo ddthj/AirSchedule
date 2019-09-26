@@ -84,10 +84,17 @@ class location:
         return msg
 
 class scenario:
-    def __init__(self, locations, flights):
+    def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people):
         self.locations = locations
         self.flights = flights
+        self.manifests = manifests
+        self.groups = groups
+        self.itineraries = itineraries
+        self.aircraft = aircraft
+        self.people = people
         self.time = 0
+    def encode(self):
+        return ""
     
     
     

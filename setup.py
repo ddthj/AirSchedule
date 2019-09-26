@@ -19,12 +19,12 @@ class parser:
         self.gen = gen()
         self.raw = self.load(self.file)
         self.locations = []
-        self.aircraft = []
-        self.people = []
-        self.itineraries = []
-        self.groups = []
         self.flights = []
         self.manifests = []
+        self.groups = []
+        self.itineraries = []
+        self.aircraft = []
+        self.people = []
         
         if self.raw != None:
             self.raw_objects = self.split(self.raw)
@@ -152,7 +152,7 @@ class parser:
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
                 self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
-        return scenario(self.locations,self.flights)
+        return scenario(self.locations,self.flights, self.manifests, self.groups, self.itineraries, self.aircraft, self.people)
     
     def group_by_ref(self,ref):
         for group in self.groups:
