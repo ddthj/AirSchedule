@@ -28,10 +28,10 @@ class parser:
         
         if self.raw != None:
             self.raw_objects = self.split(self.raw)
-            self.parse(self.raw_objects)
             
     #turns lists into actual objects
-    def parse(self,obs):
+    def parse(self):
+        obs = self.raw_objects
         #first pass defines all itineraries and aircraft
         for item in obs:
             if item[0].find("itinerary") != -1:
@@ -152,7 +152,8 @@ class parser:
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
                 self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
-                                                
+        return scenario(self.locations,self.flights)
+    
     def group_by_ref(self,ref):
         for group in self.groups:
             if group.ref == ref:
@@ -203,18 +204,3 @@ class parser:
                 return raw
         except Exception as e:
             print(e)
-                               
-x = parser("scenarios/test.scn")
-
-                
-                
-                    
-                    
-        
-
-        
-
-        
-                
-        
-        
