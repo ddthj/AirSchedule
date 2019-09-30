@@ -42,5 +42,5 @@ async def handler(websocket,path):
 
 SIM = simulator()
     
-asyncio.get_event_loop().run_until_complete(websockets.serve(handler, 'localhost', 51010))
-asyncio.get_event_loop().run_forever()
+#asyncio.get_event_loop().run_until_complete(websockets.serve(handler, 'localhost', 51010))
+#asyncio.get_event_loop().run_forever()
