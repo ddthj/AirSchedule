@@ -1,5 +1,8 @@
 import re
 
+#todo - when adding small objects to flights/manifests/etc encode the entire object
+#on decode check for existing objects with the same ref/id
+
 class aircraft:
     def __init__(self,ref,tail):
         self.ref = ref
@@ -32,7 +35,7 @@ class itinerary:
             msg += item + "\n"
         return msg
     def encode(self):
-        return "itinerary," + self.ref + ",".join([x + "," for x in self.flights]) + "\n"
+        return "itinerary," + self.ref + "," + "".join([x + "," for x in self.flights]) + "\n"
     def decode(self,msg):
         msg = msg.split(",")
         self.ref = msg[1]
@@ -44,7 +47,7 @@ class manifest:
         self.objects = objects
     def encode(self):
         if self.objects != None:
-            return "manifest," + self.ref + ",".join(type(x).__name__ + "," + str(x.id) + "," for x in self.objects if x.ref != None) + "\n"
+            return "manifest," + self.ref + "," + "".join(type(x).__name__ + "," + str(x.id) + "," for x in self.objects if x.ref != None) + "\n"
     def decode(self,msg):
         msg = msg.split(",")
         self.ref = msg[1]

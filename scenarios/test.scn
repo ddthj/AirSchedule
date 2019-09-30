@@ -29,11 +29,9 @@ manifest A
 	group B
 
 //Defining itineraries
-itinerary B
-	er001
 
 itinerary A
-	er002
+	er001
 
 //Defining aircraft
 aircraft A
@@ -50,7 +48,7 @@ group A
 	
 group B
 	quantity 50
-	itinerary B
+	itinerary A
 	role passenger
 	
 person A
