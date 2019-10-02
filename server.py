@@ -24,7 +24,7 @@ class simulator:
 async def join(user):
     if user not in SIM.clients:
         SIM.clients.append(user)
-        await user.ws.send("joined")
+        await user.ws.send(SIM.scn.encode())
 
 async def leave(user):
     SIM.clients.remove(user)
@@ -42,5 +42,5 @@ async def handler(websocket,path):
 
 SIM = simulator()
     
-#asyncio.get_event_loop().run_until_complete(websockets.serve(handler, 'localhost', 51010))
-#asyncio.get_event_loop().run_forever()
+asyncio.get_event_loop().run_until_complete(websockets.serve(handler, 'localhost', 51010))
+asyncio.get_event_loop().run_forever()

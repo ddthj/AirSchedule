@@ -1,8 +1,3 @@
-import re
-
-#todo - when adding small objects to flights/manifests/etc encode the entire object
-#on decode check for existing objects with the same ref/id
-
 class aircraft:
     def __init__(self,ref,tail):
         self.ref = ref
@@ -11,12 +6,7 @@ class aircraft:
     def __str__(self):
         return self.ref
     def encode(self):
-        return "aircraft," + self.ref + "," + self.tail + "," + self.location.ref + "\n"
-    def decode(self, msg):
-        msg = msg.split(",")
-        self.ref = msg[1]
-        self.tail = msg[2]
-        self.location = msg[3]        
+        return "aircraft," + self.ref + "," + self.tail + "\t"
 
 class group:
     def __init__(self,ref,people):
@@ -35,11 +25,11 @@ class itinerary:
             msg += item + "\n"
         return msg
     def encode(self):
-        return "itinerary," + self.ref + "," + "".join([x + "," for x in self.flights]) + "\n"
-    def decode(self,msg):
-        msg = msg.split(",")
-        self.ref = msg[1]
-        self.flights = [msg[i] for i in range(2,len(msg))]
+        return "itinerary," + self.ref + "\t" + "".join([x + "," for x in self.flights]) + "\n"
+    def decode(self,msg,scn):
+        items = [x for x in msg.split("\t") if len(x) > 0]
+        self.ref = items[0].split(",")[1]
+        self.flights = [x for x in items[1].split(",") if len(x) > 0]
         
 class manifest:
     def __init__(self,ref,objects):
@@ -47,29 +37,34 @@ class manifest:
         self.objects = objects
     def encode(self):
         if self.objects != None:
-            return "manifest," + self.ref + "," + "".join(type(x).__name__ + "," + str(x.id) + "," for x in self.objects if x.ref != None) + "\n"
-    def decode(self,msg):
-        msg = msg.split(",")
-        self.ref = msg[1]
-        self.objects = [msg[i]+msg[i+1] for i in range(2,len(msg),2)]
-    
+            return "manifest," + self.ref + "\t" + "".join(x.encode() + "\t" for x in self.objects) + "\n"
+    def decode(self,msg,scn):
+        items = [x for x in msg.split("\t") if len(x) > 0]
+        for item in items:
+            bits = item.split(",")
+            if bits[0] == "manifest":
+                self.ref = bits[1]
+            elif bits[0] == "person":
+                temp = scn.object_by_ref(scn.people,None,bits[1])
+                if temp != None:
+                    self.objects.append(temp)
+                else:
+                    temp = person(None,bits[1],bits[2],bits[3])
+                    scn.people.append(temp)
+                    self.objects.append(temp)
+        return self
+                
 class person:
     def __init__(self,ref,ident,role,itinerary = None):
         self.ref = ref
         self.id = ident
         self.role = role
+        self.itinerary = itinerary
         self.location = None
     def __str__(self):
         return self.id
     def encode(self):
-        if self.location != None:
-            return "person," + self.id + "," + self.role + "," + self.location.ref + "\n"
-        return "person," + self.id + "," + self.role + "," + "None" + "\n"
-    def decode(self,msg):
-        msg = msg.split(",")
-        self.id = msg[1]
-        self.role = msg[2]
-        self.location = msg[3]
+        return "person," + self.id + "," + self.role + "," + str(self.itinerary) + "\t"
 
 class flight:
     def __init__(self,
@@ -100,15 +95,22 @@ class flight:
         return msg
     def encode(self):
         return "flight," + self.ref + "," + self.manifest.ref + "," + self.aircraft.ref + "," + self.departure_location.ref + "," + self.departure_time + "," + self.arrival_location.ref + "," + self.arrival_time + "," + self.status + "\n"
-    def decode(self,msg):
-        msg = msg.split(",")
-        self.ref = msg[1]
-        self.manifest = msg[2]
-        self.aircraft = msg[3]
-        self.departure_location = msg[4]
-        self.departure_time = msg[5]
-        self.arrival_location = msg[6]
-        self.arrival_time = msg[7]
+    def decode(self,msg,scn):
+        bits = [x for x in msg.split(",") if len(x) > 0]
+        self.ref = bits[1]
+        self.manifest = bits[2]
+        self.aircraft = bits[3]
+        self.deperture_location = bits[4]
+        self.departure_time = bits[5]
+        self.arrival_location = bits[6]
+        self.arrival_time = bits[7]
+        self.status = bits[8]
+        return self
+    def resolve_references(self,scn):
+        self.manifest = scn.object_by_ref(scn.manifests, self.manifest, None)
+        self.aircraft = scn.object_by_ref(scn.aircraft,self.aircraft,None)
+        self.departure_location = scn.object_by_ref(scn.locations,self.departure_location,None)
+        self.arrival_location = scn.object_by_ref(scn.locations, self.arrival_location,None)  
         
 class location:
     def __init__(self, ref, aircraft, flight_crew, cabin_crew, passengers, cargo):
@@ -126,14 +128,42 @@ class location:
         msg += "\nPassengers: %s" % str( len(self.passengers))
         return msg
     def encode(self):
-        return "location," + self.ref + ",aircraft," + "".join([x.ref + "," for x in self.aircraft]) + "people," + "".join([x.id + "," for x in self.flight_crew + self.cabin_crew + self.passengers]) + "cargo," + "".join(x.ref + "," for x in self.cargo) + "\n"
-    def decode(self,msg):
-        msg = msg.split(",") 
-        self.ref = msg[1]
-        self.aircraft = msg[3:msg.index("people")]
-        self.people = msg[msg.index("people")+1:msg.index("cargo")]
-        self.cargo = msg[msg.index("cargo")+1:]
-        
+        return "location," + self.ref + "\t" + "".join([x.encode() for x in self.aircraft]) + "".join([x.encode() for x in self.flight_crew + self.cabin_crew + self.passengers]) + "".join(x.encode() for x in self.cargo) + "\n"
+    def decode(self,msg,scn):
+        items = [x for x in msg.split("\t") if len(x) > 0]
+        for item in items:
+            bits = item.split(",")
+            if bits[0] == "location":
+                self.ref = bits[1]
+            elif bits[0] == "aircraft":
+                temp = scn.object_by_ref(scn.aircraft,bits[1],None)
+                if temp != None:
+                    temp.location = self
+                    self.aircraft.append(temp)
+                else:
+                    temp = aircraft(bits[1],bits[2])
+                    temp.location = self
+                    scn.aircraft.append(temp)
+            elif bits[0] == "person":
+                temp = scn.object_by_ref(scn.people,None,bits[1])
+                if temp != None:
+                    temp.location = self
+                else:
+                    temp = person(None,bits[1],bits[2],bits[3])
+                    temp.location = self
+                    scn.people.append(temp)
+                if temp.role == "pilot":
+                    self.flight_crew.append(temp)
+                elif temp.role == "attendant":
+                    self.cabin_crew.append(temp)
+                else:
+                    self.passengers.append(temp)
+                    
+            elif bits[0] == "cargo":
+                pass
+            else:
+                print("failed to decode bit %s" % bits)
+        return self
 
 class scenario:
     def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people):
@@ -145,5 +175,26 @@ class scenario:
         self.aircraft = aircraft
         self.people = people
         self.time = 0
+    def object_by_ref(self,objects,ref,ident):
+        for item in objects:
+            if ident != None and ident == item.id:
+                return item
+            elif ident == None and item.ref == ref:
+                return item
+        return None
     def encode(self):
-        return "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries]) + "".join([x.encode() for x in self.aircraft]) + "".join([x.encode() for x in self.people])
+        return "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
+    def decode(self,msg):
+        main = [x for x in msg.split("\n") if len(x) > 0]
+        for item in main:
+            if item.find("location") != -1:
+                self.locations.append(location(None,[],[],[],[],[]).decode(item,self))
+            elif item.find("flight") != -1:
+                self.flights.append(flight(None,None,None,None,None,None,None).decode(item,self))
+            elif item.find("manifest") != -1:
+                self.manifests.append(manifest(None,[]).decode(item,self))
+            elif item.find("itinerary") != -1:
+                self.itineraries.append(itinerary(None,[]).decode(item,self))
+            else:
+                print("couldn't decode %s" % (item))
+                
