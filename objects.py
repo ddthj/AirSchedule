@@ -100,12 +100,13 @@ class flight:
         self.ref = bits[1]
         self.manifest = bits[2]
         self.aircraft = bits[3]
-        self.deperture_location = bits[4]
+        self.departure_location = bits[4]
         self.departure_time = bits[5]
         self.arrival_location = bits[6]
         self.arrival_time = bits[7]
         self.status = bits[8]
         return self
+    
     def resolve_references(self,scn):
         self.manifest = scn.object_by_ref(scn.manifests, self.manifest, None)
         self.aircraft = scn.object_by_ref(scn.aircraft,self.aircraft,None)
@@ -197,4 +198,7 @@ class scenario:
                 self.itineraries.append(itinerary(None,[]).decode(item,self))
             else:
                 print("couldn't decode %s" % (item))
+
+        for item in self.flights:
+            item.resolve_references(self)
                 

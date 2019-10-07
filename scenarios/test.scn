@@ -14,9 +14,17 @@ location JFK
 
 flight er001
 	departure_location LAX 
-	departure_time 0530 
+	departure_time 0030 
 	arrival_location JFK
-	arrival_time 0930
+	arrival_time 0330
+	aircraft A
+	manifest A
+
+flight er002
+	departure_location JFK 
+	departure_time 0400 
+	arrival_location LAX
+	arrival_time 0700
 	aircraft A
 	manifest A
 

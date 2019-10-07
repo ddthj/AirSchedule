@@ -1,14 +1,20 @@
 import asyncio
 import websockets
 from objects import *
+from graphics import gui
 
 
-url = "ws://localhost:51010"
-x = scenario([],[],[],[],[],[],[])
 
-async def join():
-    async with websockets.connect(url) as ws:
+scn = scenario([],[],[],[],[],[],[])
+gui = gui(scn)
+
+async def connect():
+    async with websockets.connect("ws://localhost:51010") as ws:
         await ws.send("join")
-        x.decode(await ws.recv())
+        scn.decode(await ws.recv())
+        
+        
+asyncio.get_event_loop().run_until_complete(connect())
 
-asyncio.get_event_loop().run_until_complete(join())
+while gui.run:
+    gui.update()
