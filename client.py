@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 from objects import *
-from graphics import gui
+from graphics2 import gui
 
 
 
