@@ -175,7 +175,7 @@ class scenario:
         self.itineraries = itineraries
         self.aircraft = aircraft
         self.people = people
-        self.time = 0
+        self.time = 40
     def object_by_ref(self,objects,ref,ident):
         for item in objects:
             if ident != None and ident == item.id:

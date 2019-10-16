@@ -55,7 +55,9 @@ class box:
         return self.location
     def render(self,window,layer):
         if layer == self.layer:
-            pygame.draw.rect(window,self.color, (*self.get_loc().render(),*self.size.render()),self.width)
+            loc = self.get_loc()
+            if loc[0] +self.size[0] > 0 and loc[0] < 1920:
+                pygame.draw.rect(window,self.color, (*self.get_loc().render(),*self.size.render()),self.width)
     def onPress(self):
         pass
     def onRelease(self):
@@ -82,10 +84,12 @@ class textbox:
         return self.parent.get_loc() + self.location
     def render(self,window,layer):
         if layer == self.layer:
-            font = pygame.font.SysFont("courier",self.size)
-            text = font.render(self.text,1,self.color)
-            center = Vec2(0,0) if not self.centered else Vec2(text.get_rect().width//2,text.get_rect().height//2)
-            window.blit(text,(self.get_loc() - center).render())
+            loc = self.get_loc()
+            if loc[0] >= 0 and loc[0] < 1920:
+                font = pygame.font.SysFont("courier",self.size)
+                text = font.render(self.text,1,self.color)
+                center = Vec2(0,0) if not self.centered else Vec2(text.get_rect().width//2,text.get_rect().height//2)
+                window.blit(text,(loc - center).render())
     def update(self,gui):
         pass
 
@@ -129,20 +133,22 @@ class gui:
                 self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
-                    self.x_scroll += 15
+                    self.x_scroll -= 50
                 elif event.button == 5:
-                    self.x_scroll -= 15
+                    self.x_scroll += 50
                 if self.x_scroll < 0:
                     self.x_scroll = 0
 
-        center = box(None,color=[210,210,210],size=Vec2(24*100,30*(1+len(self.client.aircraft))),location=Vec2(self.elements[1].size[0]-self.x_scroll,self.elements[0].size[1]))
+        center = box(None,color=[210,210,210],size=Vec2(3750,29*(1+len(self.client.aircraft))),location=Vec2(self.elements[1].size[0]-self.x_scroll,self.elements[0].size[1]))
         temp = [center]  
         for a in range(len(self.client.aircraft)):
-            for b in range(24):
-                temp.append(box(center,size=Vec2(100,30),location=Vec2(100*b, 29*(a+1)),width=2))
-
+            temp.append(box(center,size=Vec2(3750,30),location=Vec2(0, 29*(a+1)),width=2,layer=center.layer+2))
+        for b in range(49):
+            timetext = "{:02d}:{:02d}".format(30*b//60, 30*b%60)
+            temp.append(box(center,size=Vec2(1, 10 + 29 * (len(self.client.aircraft))),location=Vec2(50+(b*75),20)))
+            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12)))            
         for i in range(len(self.client.aircraft)):
-            ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=1)
+            ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=2)
             tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30)
             temp += [ac,tx]
             for flight in self.client.flights:
@@ -150,8 +156,13 @@ class gui:
                     dept_time = int(flight.departure_time[:2])*60 + int(flight.departure_time[2:])
                     arri_time = int(flight.arrival_time[:2])*60 + int(flight.arrival_time[2:])
 
-                    flight_box = box(center,color=[50,160,160],size=Vec2(0,0))#todo
-            
+                    flight_box = box(center,color=[50,160,160],size=Vec2((((arri_time-dept_time)/30) * 75),29),location=Vec2(((dept_time/30) * 75)+50,30*(1+i)))
+                    flight_name = textbox(flight_box,flight.ref,location=flight_box.size/2,size=25)
+                    dept_name = textbox(flight_box,flight.departure_location.ref + " " + flight.departure_time,location=Vec2(0,1)*flight_box.size/2,size=15,centered=False)
+                    arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,centered=False)
+                    temp+= [flight_box,flight_name, dept_name,arri_name]
+        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ self.client.time*2.5,20)))
+        
         for element in self.elements:
             element.update(self)
         for i in range(10):
