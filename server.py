@@ -4,30 +4,41 @@ import logging
 from setup import parser
 from objects import *
 
+logging.basicConfig()
+
+class client:
+    def __init__(self,websocket):
+        self.ws = websocket
+
 class simulator:
     def __init__(self):
         self.parser = parser("scenarios/test.scn")
         self.scn = self.parser.parse()
-        self.clients = []            
+        self.clients = []
+
+    async def send_scenario(self):
+        msg = self.scn.encode()
+        for client in self.clients:
+            await client.ws.send(msg)
 
 async def join(user):
-    SIM.clients.append(user)
+    if user not in SIM.clients:
+        SIM.clients.append(user)
+        await user.ws.send(SIM.scn.encode())
+
 async def leave(user):
     SIM.clients.remove(user)
-    
 
 async def handler(websocket,path):
-    await join(websocket)
+    user = client(websocket)
+    print(websocket,path)
     try:
-        await websocket.send(SIM.scn.encode())
-        try:
-            async for message in websocket:
-                print(message)
-                await websocket.send(message)
-        except:
-            pass
+        async for message in websocket:
+            if message.find("join") != -1:
+                await join(user)
     finally:
-        await leave(websocket)
+        await leave(user)
+        websocket.close()
 
 SIM = simulator()
     

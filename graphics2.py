@@ -123,7 +123,6 @@ class gui:
             ]
         
     def update(self):
-        messages = []
         self.window.fill(self.bg_color)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -135,10 +134,8 @@ class gui:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     self.x_scroll -= 50
-                    messages.append("up!")
                 elif event.button == 5:
                     self.x_scroll += 50
-                    messages.append("down!")
                 if self.x_scroll < 0:
                     self.x_scroll = 0
 
@@ -173,6 +170,3 @@ class gui:
                 element.render(self.window,i)
         if self.run:
             pygame.display.update()
-        return messages
-
-        
