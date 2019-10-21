@@ -184,9 +184,10 @@ class scenario:
                 return item
         return None
     def encode(self):
-        return "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
+        return str(self.time) + "\n" + "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
     def decode(self,msg):
         main = [x for x in msg.split("\n") if len(x) > 0]
+        self.time = int(main[0])
         for item in main:
             if item.find("location") != -1:
                 self.locations.append(location(None,[],[],[],[],[]).decode(item,self))
@@ -198,7 +199,6 @@ class scenario:
                 self.itineraries.append(itinerary(None,[]).decode(item,self))
             else:
                 print("couldn't decode %s" % (item))
-
         for item in self.flights:
             item.resolve_references(self)
                 
