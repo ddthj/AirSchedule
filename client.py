@@ -1,25 +1,23 @@
 import asyncio
 import websockets
 from objects import *
-from graphics2 import gui
+from graphics import gui
 
 
 class client:
     def __init__(self):
         self.scn = scenario([],[],[],[],[],[],[])
         self.gui = gui(self.scn)
-        # Note: Dom dislikes the design where gui seems to own an object which is externally mutated.
 
     async def consume(self,ws):
-        try:
-            while True:
-                inbound = await ws.recv()
-                print("got msg from server.")
+        while True:
+            inbound = await ws.recv()
+            print("got msg from server.")
+            if len(inbound) > 200:
                 self.scn.decode(inbound)
-        except websockets.exceptions.ConnectionClosed:
-            pass
-        finally:
-            print("consume done")
+                print("decoded scn")
+            else:
+                print(inbound)
 
     async def produce(self,ws):
         while True:
