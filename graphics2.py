@@ -32,7 +32,7 @@ class Vec2:
             return Vec2(self[0]/value if value != 0 else 0, self[1]/value if value != 0 else 0)
     def render(self):
         return [int(self[0]), int(self[1])]
-    
+
 class box:
     def __init__(self,parent,**kwargs):
         self.parent = parent
@@ -112,16 +112,16 @@ class gui:
 
         time_box = box(side,size=Vec2(side.size[0],30),width=2)
         time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)
-        
+
         #time_box = box(top_bar,color=[200,200,200],layer=0, location=Vec2(0,top_bar.size[1]-25),size=Vec2(top_bar.size[0],20), ratio=Vec2(1,0))
-        #time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)    
+        #time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)
         self.elements = [
             top,
             side,
             time_box,
             time_label
             ]
-        
+
     def update(self):
         self.window.fill(self.bg_color)
         for event in pygame.event.get():
@@ -140,13 +140,13 @@ class gui:
                     self.x_scroll = 0
 
         center = box(None,color=[210,210,210],size=Vec2(3750,29*(1+len(self.client.aircraft))),location=Vec2(self.elements[1].size[0]-self.x_scroll,self.elements[0].size[1]))
-        temp = [center]  
+        temp = [center]
         for a in range(len(self.client.aircraft)):
             temp.append(box(center,size=Vec2(3750,30),location=Vec2(0, 29*(a+1)),width=2,layer=center.layer+2))
         for b in range(49):
             timetext = "{:02d}:{:02d}".format(30*b//60, 30*b%60)
             temp.append(box(center,size=Vec2(1, 10 + 29 * (len(self.client.aircraft))),location=Vec2(50+(b*75),20)))
-            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12)))            
+            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12)))
         for i in range(len(self.client.aircraft)):
             ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=2)
             tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30)
@@ -162,7 +162,7 @@ class gui:
                     arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,centered=False)
                     temp+= [flight_box,flight_name, dept_name,arri_name]
         temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ self.client.time*2.5,20)))
-        
+
         for element in self.elements:
             element.update(self)
         for i in range(10):
@@ -170,3 +170,13 @@ class gui:
                 element.render(self.window,i)
         if self.run:
             pygame.display.update()
+
+        # dom's fake events. REAL FAKE EVENTS!
+        import time
+        now = time.time()
+        if not hasattr(self, 'last_fake_message'):
+            self.last_fake_message = 0.
+        if now - self.last_fake_message < 10.:
+            return []
+        self.last_fake_message = now
+        return [f'fake message yay {self.last_fake_message}']
