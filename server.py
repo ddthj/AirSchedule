@@ -40,7 +40,7 @@ class simulator:
                 await websocket.send(message)
         finally:
             await self.leave(user)
-            websocket.close()
+            await websocket.close()
 
 
 

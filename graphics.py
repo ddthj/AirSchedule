@@ -164,7 +164,8 @@ class gui:
                     dept_name = textbox(flight_box,flight.departure_location.ref + " " + flight.departure_time,location=Vec2(0,1)*flight_box.size/2,size=15,centered=False)
                     arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,centered=False)
                     temp+= [flight_box,flight_name, dept_name,arri_name]
-        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ self.client.time*2.5,20)))
+        time = int(self.client.time[:2]) * 60 + int(self.client.time[2:])
+        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ time*2.5,20)))
 
         for element in self.elements:
             element.update(self)

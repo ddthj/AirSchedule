@@ -25,6 +25,7 @@ class parser:
         self.itineraries = []
         self.aircraft = []
         self.people = []
+        self.start_time = "0000"
         
         if self.raw != None:
             self.raw_objects = self.split(self.raw)
@@ -32,7 +33,7 @@ class parser:
     #turns lists into actual objects
     def parse(self):
         obs = self.raw_objects
-        #first pass defines all itineraries and aircraft
+        #first pass defines all itineraries and aircraft and the start time
         for item in obs:
             if item[0].find("itinerary") != -1:
                 ref = item[0].split("itinerary")[1]
@@ -45,6 +46,8 @@ class parser:
                     if item[i].find("tail") != -1:
                         tail = item[i].split("tail")[1]
                 self.aircraft.append(aircraft(ref,tail))
+            elif item[0].find("time") != -1:
+                self.start_time = item[0].split("time")[1]
 
         #second pass gets people and groups
         for item in obs:
@@ -152,7 +155,7 @@ class parser:
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
                 self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
-        return scenario(self.locations,self.flights, self.manifests, self.groups, self.itineraries, self.aircraft, self.people)
+        return scenario(self.locations,self.flights, self.manifests, self.groups, self.itineraries, self.aircraft, self.people, self.start_time)
     
     def group_by_ref(self,ref):
         for group in self.groups:

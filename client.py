@@ -6,7 +6,7 @@ from graphics import gui
 
 class client:
     def __init__(self):
-        self.scn = scenario([],[],[],[],[],[],[])
+        self.scn = scenario([],[],[],[],[],[],[],"0000")
         self.gui = gui(self.scn)
 
     async def consume(self,ws):

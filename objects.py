@@ -167,7 +167,7 @@ class location:
         return self
 
 class scenario:
-    def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people):
+    def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people,start):
         self.locations = locations
         self.flights = flights
         self.manifests = manifests
@@ -175,7 +175,7 @@ class scenario:
         self.itineraries = itineraries
         self.aircraft = aircraft
         self.people = people
-        self.time = 40
+        self.time = start
     def object_by_ref(self,objects,ref,ident):
         for item in objects:
             if ident != None and ident == item.id:
@@ -184,9 +184,10 @@ class scenario:
                 return item
         return None
     def encode(self):
-        return "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
+        return str(self.time) + "\n" + "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
     def decode(self,msg):
         main = [x for x in msg.split("\n") if len(x) > 0]
+        self.time = main[0]
         for item in main:
             if item.find("location") != -1:
                 self.locations.append(location(None,[],[],[],[],[]).decode(item,self))
