@@ -12,7 +12,7 @@ class client:
 
 class simulator:
     def __init__(self):
-        self.parser = parser("scenarios/test.scn")
+        self.parser = parser("scenarios/AOC Schedule.scn")
         self.scn = self.parser.parse()
         self.clients = []
 
