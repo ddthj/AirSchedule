@@ -80,14 +80,17 @@ class textbox:
         self.location = kwargs.get("location", parent.location)
         self.centered = kwargs.get("centered", True)#text centered in textbox, not parent
         self.size = kwargs.get("size", 15)
+        self.font = kwargs.get("font")
     def get_loc(self):
         return self.parent.get_loc() + self.location
     def render(self,window,layer):
         if layer == self.layer:
             loc = self.get_loc()
             if loc[0] >= 0 and loc[0] < 1920:
-                font = pygame.font.SysFont("courier",self.size)
-                text = font.render(self.text,1,self.color)
+                try:
+                    text = self.font.render(self.text,1,self.color)
+                except:
+                    pass
                 center = Vec2(0,0) if not self.centered else Vec2(text.get_rect().width//2,text.get_rect().height//2)
                 window.blit(text,(loc - center).render())
     def update(self,gui):
@@ -110,8 +113,12 @@ class gui:
         top = box(None,color=[200,200,200], size=Vec2(self.resolution[0],self.resolution[1]//6),ratio=Vec2(1,0),layer=3)
         side = box(None,color=[200,200,200], location=Vec2(0,self.resolution[1]//6),size=Vec2(self.resolution[0]//8,self.resolution[1]),ratio=Vec2(0,1),layer=3)
 
+        self.font_15 = pygame.font.SysFont("courier",15)
+        self.font_25 = pygame.font.SysFont("courier",25)
+        self.font_30 = pygame.font.SysFont("courier",30)
+
         time_box = box(side,size=Vec2(side.size[0],30),width=2)
-        time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)
+        time_label = textbox(time_box,"Time",location=time_box.size/2,size=30,font=self.font_30)
 
         #time_box = box(top_bar,color=[200,200,200],layer=0, location=Vec2(0,top_bar.size[1]-25),size=Vec2(top_bar.size[0],20), ratio=Vec2(1,0))
         #time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)
@@ -135,10 +142,8 @@ class gui:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     self.x_scroll -= 50
-                    msg.append("up!")
                 elif event.button == 5:
                     self.x_scroll += 50
-                    msg.append("down!")
                 if self.x_scroll < 0:
                     self.x_scroll = 0
 
@@ -149,21 +154,24 @@ class gui:
         for b in range(49):
             timetext = "{:02d}:{:02d}".format(30*b//60, 30*b%60)
             temp.append(box(center,size=Vec2(1, 10 + 29 * (len(self.client.aircraft))),location=Vec2(50+(b*75),20)))
-            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12)))
+            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12),font=self.font_15))
+
+        for flight in self.client.flights:
+            i = self.client.aircraft.index([aircraft for aircraft in self.client.aircraft if aircraft.ref == flight.aircraft.ref][0])
+            dept_time = int(flight.departure_time[:2])*60 + int(flight.departure_time[2:])
+            arri_time = int(flight.arrival_time[:2])*60 + int(flight.arrival_time[2:])
+
+            flight_box = box(center,color=[50,160,160],size=Vec2((((arri_time-dept_time)/30) * 75),29),location=Vec2(((dept_time/30) * 75)+50,29*(1+i)))
+            flight_name = textbox(flight_box,flight.ref,location=flight_box.size/2,size=25,font=self.font_25)
+            dept_name = textbox(flight_box,flight.departure_location.ref + " " + flight.departure_time,location=Vec2(0,1)*flight_box.size/2,size=15,font=self.font_15,centered=False)
+            arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,font=self.font_15,centered=False)
+            temp+= [flight_box,flight_name, dept_name,arri_name]
+            
         for i in range(len(self.client.aircraft)):
             ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=2)
-            tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30)
+            tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30, font=self.font_30)
             temp += [ac,tx]
-            for flight in self.client.flights:
-                if flight.aircraft.ref == self.client.aircraft[i].ref:
-                    dept_time = int(flight.departure_time[:2])*60 + int(flight.departure_time[2:])
-                    arri_time = int(flight.arrival_time[:2])*60 + int(flight.arrival_time[2:])
-
-                    flight_box = box(center,color=[50,160,160],size=Vec2((((arri_time-dept_time)/30) * 75),29),location=Vec2(((dept_time/30) * 75)+50,30*(1+i)))
-                    flight_name = textbox(flight_box,flight.ref,location=flight_box.size/2,size=25)
-                    dept_name = textbox(flight_box,flight.departure_location.ref + " " + flight.departure_time,location=Vec2(0,1)*flight_box.size/2,size=15,centered=False)
-                    arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,centered=False)
-                    temp+= [flight_box,flight_name, dept_name,arri_name]
+            
         time = int(self.client.time[:2]) * 60 + int(self.client.time[2:])
         temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ time*2.5,20)))
 
@@ -175,4 +183,3 @@ class gui:
         if self.run:
             pygame.display.update()
         return msg
-        

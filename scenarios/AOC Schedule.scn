@@ -70,14 +70,14 @@ flight 4477
 	departure_location LAS
 	departure_time 2330
 	arrival_location SFO
-	arrival_time 45
+	arrival_time 0045
 	aircraft 3
 	manifest 4477
 flight 2634
 	departure_location SFO
-	departure_time 120
+	departure_time 0120
 	arrival_location ATL
-	arrival_time 610
+	arrival_time 0610
 	aircraft 3
 	manifest 2634
 flight 5872
@@ -110,28 +110,28 @@ flight 6932
 	manifest 6932
 flight 8475
 	departure_location SFO
-	departure_time 15
+	departure_time 0015
 	arrival_location ATL
-	arrival_time 430
+	arrival_time 0430
 	aircraft 4
 	manifest 8475
 flight 1140
 	departure_location ATL
-	departure_time 500
+	departure_time 0500
 	arrival_location MSP
-	arrival_time 720
+	arrival_time 0720
 	aircraft 4
 	manifest 1140
 flight 3698
 	departure_location MSP
-	departure_time 750
+	departure_time 0750
 	arrival_location LAX
 	arrival_time 1050
 	aircraft 4
 	manifest 3698
 flight 3315
 	departure_location LAX
-	departure_time 705
+	departure_time 0705
 	arrival_location MSP
 	arrival_time 1137
 	aircraft 6
@@ -168,19 +168,19 @@ flight 6935
 	departure_location ATL
 	departure_time 2350
 	arrival_location SFO
-	arrival_time 510
+	arrival_time 0510
 	aircraft 6
 	manifest 6935
 flight 7216
 	departure_location SFO 
-	departure_time 545
+	departure_time 0545
 	arrival_location LAX
-	arrival_time 620
+	arrival_time 0620
 	aircraft 6
 	manifest 7216
 flight 6651
 	departure_location SFO
-	departure_time 600
+	departure_time 0600
 	arrival_location IAH
 	arrival_time 1039
 	aircraft 7
@@ -210,33 +210,33 @@ flight 5478
 	departure_location MSP
 	departure_time 2026
 	arrival_location SFO
-	arrival_time 52
+	arrival_time 0052
 	aircraft 7
 	manifest 5478
 flight 6487
 	departure_location SFO
-	departure_time 125
+	departure_time 0125
 	arrival_location LAX
-	arrival_time 250
+	arrival_time 0250
 	aircraft 7
 	manifest 6487
 flight 2598
 	departure_location LAX
-	departure_time 330
+	departure_time 0330
 	arrival_location SFO
-	arrival_time 525
+	arrival_time 0525
 	aircraft 7
 	manifest 2598
 flight 3695
 	departure_location STL
-	departure_time 735
+	departure_time 0735
 	arrival_location MSP
-	arrival_time 857
+	arrival_time 0857
 	aircraft 8
 	manifest 3695
 flight 4781
 	departure_location MSP
-	departure_time 930
+	departure_time 0930
 	arrival_location ATL
 	arrival_time 1118
 	aircraft 8
@@ -273,14 +273,14 @@ flight 5992
 	departure_location SFO
 	departure_time 2215
 	arrival_location ATL
-	arrival_time 430
+	arrival_time 0430
 	aircraft 8
 	manifest 5992
 flight 5963
 	departure_location ATL
-	departure_time 510
+	departure_time 0510
 	arrival_location STL
-	arrival_time 700
+	arrival_time 0700
 	aircraft 8
 	manifest 5963
 flight 5494
@@ -315,33 +315,33 @@ flight 5019
 	departure_location ATL
 	departure_time 2358
 	arrival_location SFO
-	arrival_time 433
+	arrival_time 0433
 	aircraft 10
 	manifest 5019
 flight 6520
 	departure_location SFO
-	departure_time 455
+	departure_time 0455
 	arrival_location SEA
-	arrival_time 600
+	arrival_time 0600
 	aircraft 10
 	manifest 6520
 flight 3351
 	departure_location SEA
-	departure_time 625
+	departure_time 0625
 	arrival_location SFO
-	arrival_time 845
+	arrival_time 0845
 	aircraft 10
 	manifest 3351
 flight 8565
 	departure_location SFO
-	departure_time 915
+	departure_time 0915
 	arrival_location LAX
 	arrival_time 1055
 	aircraft 10
 	manifest 8565
 flight 4722
 	departure_location MSP
-	departure_time 607
+	departure_time 0607
 	arrival_location SFO
 	arrival_time 1021
 	aircraft 11
@@ -364,21 +364,21 @@ flight 5738
 	departure_location MSP
 	departure_time 1953
 	arrival_location SFO
-	arrival_time 23
+	arrival_time 0023
 	aircraft 11
 	manifest 5738
 flight 6701
 	departure_location SFO
-	departure_time 123
+	departure_time 0123
 	arrival_location MSP
-	arrival_time 503
+	arrival_time 0503
 	aircraft 11
 	manifest6701
 flight 5855
 	departure_location IAH
-	departure_time 544
+	departure_time 0544
 	arrival_location SFO
-	arrival_time 930
+	arrival_time 0930
 	aircraft 13
 	manifest 5855
 flight 5294
@@ -406,19 +406,19 @@ flight 9569
 	departure_location SFO
 	departure_time 2215
 	arrival_location MSP
-	arrival_time 200
+	arrival_time 0200
 	aircraft 13
 	manifest 9569
 flight 4852
 	departure_location MSP
-	departure_time 230
+	departure_time 0230
 	arrival_location IAH
-	arrival_time 510
+	arrival_time 0510
 	aircraft 13
 	manifest 4852
 flight 5864
 	departure_location DEN
-	departure_time 900
+	departure_time 0900
 	arrival_location SFO
 	arrival_time 1155
 	aircraft 14
@@ -446,28 +446,28 @@ flight 1824
 	manifest 1824
 flight 3625
 	departure_location ATL
-	departure_time 30
+	departure_time 0030
 	arrival_location SFO
-	arrival_time 615
+	arrival_time 0615
 	aircraft 14
 	manifest 3625
 flight 7931
 	departure_location SFO
-	departure_time 645
+	departure_time 0645
 	arrival_location DEN
-	arrival_time 835
+	arrival_time 0835
 	aircraft 14
 	manifest 7931
 flight 6351
 	departure_location SFO
-	departure_time 303
+	departure_time 0303
 	arrival_location ATL
-	arrival_time 750
+	arrival_time 0750
 	aircraft 15
 	manifest 6351
 flight 2958
 	departure_location ATL
-	departure_time 815
+	departure_time 0815
 	arrival_location IAH
 	arrival_time 1134
 	aircraft 15
@@ -502,21 +502,21 @@ flight 3352
 	manifest 3352
 flight 7777
 	departure_location LAS
-	departure_time 30
+	departure_time 0030
 	arrival_location SFO
-	arrival_time 145
+	arrival_time 0145
 	aircraft 15
 	manifest 7777
 flight 4173
 	departure_location MSP
-	departure_time 513
+	departure_time 0513
 	arrival_location SEA
-	arrival_time 857
+	arrival_time 0857
 	aircraft 17
 	manifest 4173
 flight 3871
 	departure_location SEA
-	departure_time 944
+	departure_time 0944
 	arrival_location MSP
 	arrival_time 1258
 	aircraft 17
@@ -539,14 +539,14 @@ flight 1311
 	departure_location SFO
 	departure_time 2204
 	arrival_location ATL
-	arrival_time 230
+	arrival_time 0230
 	aircraft 17
 	manifest 1311
 flight 1487
 	departure_location ATL
-	departure_time 304
+	departure_time 0304
 	arrival_location MSP
-	arrival_time 447
+	arrival_time 0447
 	aircraft 17
 	manifest 1487
 flight 1205
@@ -574,33 +574,33 @@ flight 9689
 	departure_location LAX
 	departure_time 2305
 	arrival_location SFO
-	arrival_time 45
+	arrival_time 0045
 	aircraft 19
 	manifest 9689
 flight 4518
 	departure_location SFO
-	departure_time 115
+	departure_time 0115
 	arrival_location SEA
-	arrival_time 350
+	arrival_time 0350
 	aircraft 19
 	manifest 4518
 flight 3154
 	departure_location SEA
-	departure_time 425
+	departure_time 0425
 	arrival_location SFO
-	arrival_time 650
+	arrival_time 0650
 	aircraft 19
 	manifest 3154
 flight 6668
 	departure_location SFO
-	departure_time 815
+	departure_time 0815
 	arrival_location DFW
 	arrival_time 1105
 	aircraft 19
 	manifest 6668
 flight 3049
 	departure_location IAH
-	departure_time 745
+	departure_time 0745
 	arrival_location MSP
 	arrival_time 1037
 	aircraft 21
@@ -630,26 +630,26 @@ flight 1101
 	departure_location ATL
 	departure_time 2320
 	arrival_location MIA
-	arrival_time 120
+	arrival_time 0120
 	aircraft 21
 	manifest 1101
 flight 5984
 	departure_location MIA
-	departure_time 215
+	departure_time 0215
 	arrival_location ATL
-	arrival_time 400
+	arrival_time 0400
 	aircraft 21
 	manifest 5984
 flight 8596
 	departure_location ATL
-	departure_time 430
+	departure_time 0430
 	arrival_location IAH
-	arrival_time 710
+	arrival_time 0710
 	aircraft 21
 	manifest 8596
 flight 5026
 	departure_location DFW
-	departure_time 635
+	departure_time 0635
 	arrival_location SFO
 	arrival_time 1015
 	aircraft 25
@@ -679,21 +679,21 @@ flight 1803
 	departure_location ATL
 	departure_time 2000
 	arrival_location SFO
-	arrival_time 10
+	arrival_time 0010
 	aircraft 25
 	manifest 1803
 flight 2896
 	departure_location SFO
-	departure_time 45
+	departure_time 0045
 	arrival_location ATL
-	arrival_time 430
+	arrival_time 0430
 	aircraft 25
 	manifest 2896
 flight 1144
 	departure_location ATL
-	departure_time 450
+	departure_time 0450
 	arrival_location DFW
-	arrival_time 605
+	arrival_time 0605
 	aircraft 25
 	manifest 1144
 //aircraft

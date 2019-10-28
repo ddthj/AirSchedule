@@ -154,8 +154,9 @@ class parser:
                         local_aircraft = self.aircraft_by_ref(item[i].split("aircraft")[1])
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
-                if int(local_arrive_time) >100 and int(local_dept_time) > 100:
-                    self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
+                if int(local_arrive_time) < int(local_dept_time):
+                    local_arrive_time = str(int(local_arrive_time) + 2400)
+                self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
         return scenario(self.locations,self.flights, self.manifests, self.groups, self.itineraries, self.aircraft, self.people, self.start_time)
     
     def group_by_ref(self,ref):
