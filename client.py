@@ -6,18 +6,24 @@ from graphics import gui
 
 class client:
     def __init__(self):
-        self.scn = scenario([],[],[],[],[],[],[],"0000")
+        self.scn = scenario([],[],[],[],[],[],[],0)
+        self.updates = []
         self.gui = gui(self.scn)
 
     async def consume(self,ws):
         while True:
             inbound = await ws.recv()
-            print("got msg from server.")
-            if len(inbound) > 200:
+            if len(inbound) > 2000:
                 self.scn.decode(inbound)
-                print("decoded scn")
             else:
                 print(inbound)
+                if inbound.find("ud") != -1:
+                    s = inbound.split(",")
+                    ud = update(int(s[1]),s[2])
+                    self.updates.append(ud)
+                    if ud.change.find("time") != -1:
+                        self.scn.time += int(ud.change.split("time")[1])
+
 
     async def produce(self,ws):
         while True:

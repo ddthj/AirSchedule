@@ -166,6 +166,14 @@ class location:
                 print("failed to decode bit %s" % bits)
         return self
 
+class update:
+    def __init__(self,number, change):
+        self.number = number
+        self.change = change
+        self.handled = False
+    def encode(self):
+        return "ud,%s,%s" % (self.number,self.change)
+
 class scenario:
     def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people,start):
         self.locations = locations
@@ -187,7 +195,7 @@ class scenario:
         return str(self.time) + "\n" + "".join([x.encode() for x in self.locations]) + "".join([x.encode() for x in self.flights]) + "".join([x.encode() for x in self.manifests]) + "".join([x.encode() for x in self.itineraries])
     def decode(self,msg):
         main = [x for x in msg.split("\n") if len(x) > 0]
-        self.time = main[0]
+        self.time = int(main[0])
         for item in main:
             if item.find("location") != -1:
                 self.locations.append(location(None,[],[],[],[],[]).decode(item,self))

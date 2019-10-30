@@ -171,9 +171,8 @@ class gui:
             ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=2)
             tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30, font=self.font_30)
             temp += [ac,tx]
-            
-        time = int(self.client.time[:2]) * 60 + int(self.client.time[2:])
-        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ time*2.5,20)))
+
+        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ self.client.time*2.5,20)))
 
         for element in self.elements:
             element.update(self)

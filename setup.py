@@ -25,7 +25,7 @@ class parser:
         self.itineraries = []
         self.aircraft = []
         self.people = []
-        self.start_time = "0000"
+        self.start_time = 0
         
         if self.raw != None:
             self.raw_objects = self.split(self.raw)
@@ -47,7 +47,8 @@ class parser:
                         tail = item[i].split("tail")[1]
                 self.aircraft.append(aircraft(ref,tail))
             elif item[0].find("time") != -1:
-                self.start_time = item[0].split("time")[1]
+                temp_time = int(item[0].split("time")[1])
+                self.start_time = ((temp_time // 100) * 60) + temp_time % 100
 
         #second pass gets people and groups
         for item in obs:

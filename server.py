@@ -3,6 +3,7 @@ import websockets
 import logging
 from setup import parser
 from objects import *
+import time
 
 logging.basicConfig()
 
@@ -15,11 +16,26 @@ class simulator:
         self.parser = parser("scenarios/AOC Schedule.scn")
         self.scn = self.parser.parse()
         self.clients = []
-
-    async def broadcast_scenario(self):
-        msg = self.scn.encode()
-        for client in self.clients:
-            await client.ws.send(msg)
+        self.updates = []
+        self.update_number = 0
+        self.timescale = 2
+        self.last = time.time()
+        
+    async def run(self):
+        while True:
+            await asyncio.sleep(.001)
+            if time.time() > self.last + self.timescale:
+                self.last = time.time()
+                self.scn.time += 5
+                time_update = update(self.update_number,"time+5")
+                self.updates.append(time_update)
+                self.update_number += 1
+                await self.send_update(time_update)
+                print("sent update")
+    
+    async def send_update(self,update):
+        for c in self.clients:
+            await c.ws.send(update.encode())
 
     async def join(self, user):
         if user not in self.clients:
@@ -42,11 +58,10 @@ class simulator:
             await self.leave(user)
             await websocket.close()
 
-
-
 async def main():
     server = simulator()
-    server = await websockets.serve(server.handler, 'localhost', 51010)
+    await websockets.serve(server.handler, 'localhost', 51010)
+    await server.run()
     await server.wait_closed()
 
 asyncio.run(main())
