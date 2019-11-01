@@ -53,6 +53,17 @@ class simulator:
             await self.join(user)
             async for message in websocket:
                 print(message)
+                if message.find("timescale") != -1:
+                    self.timescale = int(message.split("timescale")[1])
+                elif message.find("time") != -1:
+                    time = int(message.split("time")[1])
+                    minutes = (time//100 * 60) + time % 100
+                    delta = minutes - self.scn.time
+                    self.scn.time = minutes
+                    time_update = update(self.update_number,"time%s"%delta)
+                    self.updates.append(time_update)
+                    self.update_number += 1
+                    await self.send_update(time_update)
                 await websocket.send(message)
         finally:
             await self.leave(user)
