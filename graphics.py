@@ -1,5 +1,10 @@
 import pygame
 
+def string_time(time):
+    hours = time // 60 * 100
+    minutes = time % 60
+    return "{:04d}".format(hours+minutes)
+
 class Vec2:
     def __init__(self,*args):
         self.data = args[0] if isinstance(args[0],list) else [x for x in args]
@@ -158,13 +163,22 @@ class gui:
 
         for flight in self.client.flights:
             i = self.client.aircraft.index([aircraft for aircraft in self.client.aircraft if aircraft.ref == flight.aircraft.ref][0])
-            dept_time = int(flight.departure_time[:2])*60 + int(flight.departure_time[2:])
-            arri_time = int(flight.arrival_time[:2])*60 + int(flight.arrival_time[2:])
-
-            flight_box = box(center,color=[50,160,160],size=Vec2((((arri_time-dept_time)/30) * 75),29),location=Vec2(((dept_time/30) * 75)+50,29*(1+i)))
+            if flight.status == "scheduled":
+                box_color = [50,160,160]
+            elif flight.status == "outgate":
+                box_color = [50,200,200]
+            elif flight.status == "offground":
+                box_color = [50, 160, 68]
+            elif flight.status == "onground":
+                box_color = [50, 109, 160]
+            elif flight.status == "ingate":
+                box_color = [78, 104, 128]
+            else:
+                box_color = [50,160,160]
+            flight_box = box(center,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),29),location=Vec2(((flight.departure_time/30) * 75)+50,29*(1+i)))
             flight_name = textbox(flight_box,flight.ref,location=flight_box.size/2,size=25,font=self.font_25)
-            dept_name = textbox(flight_box,flight.departure_location.ref + " " + flight.departure_time,location=Vec2(0,1)*flight_box.size/2,size=15,font=self.font_15,centered=False)
-            arri_name = textbox(flight_box,flight.arrival_location.ref + " " + flight.arrival_time,location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,font=self.font_15,centered=False)
+            dept_name = textbox(flight_box,flight.departure_location.ref + " " + string_time(flight.departure_time),location=Vec2(0,1)*flight_box.size/2,size=15,font=self.font_15,centered=False)
+            arri_name = textbox(flight_box,flight.arrival_location.ref + " " + string_time(flight.arrival_time),location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,font=self.font_15,centered=False)
             temp+= [flight_box,flight_name, dept_name,arri_name]
             
         for i in range(len(self.client.aircraft)):

@@ -94,16 +94,16 @@ class flight:
         msg += "\n%s @%s to %s @%s" % (self.departure_location.ref, self.departure_time, self.arrival_location.ref,self.arrival_time)
         return msg
     def encode(self):
-        return "flight," + self.ref + "," + self.manifest.ref + "," + self.aircraft.ref + "," + self.departure_location.ref + "," + self.departure_time + "," + self.arrival_location.ref + "," + self.arrival_time + "," + self.status + "\n"
+        return "flight," + self.ref + "," + self.manifest.ref + "," + self.aircraft.ref + "," + self.departure_location.ref + "," + str(self.departure_time) + "," + self.arrival_location.ref + "," + str(self.arrival_time) + "," + self.status + "\n"
     def decode(self,msg,scn):
         bits = [x for x in msg.split(",") if len(x) > 0]
         self.ref = bits[1]
         self.manifest = bits[2]
         self.aircraft = bits[3]
         self.departure_location = bits[4]
-        self.departure_time = bits[5]
+        self.departure_time = int(bits[5])
         self.arrival_location = bits[6]
-        self.arrival_time = bits[7]
+        self.arrival_time = int(bits[7])
         self.status = bits[8]
         return self
     
@@ -169,10 +169,13 @@ class location:
 class update:
     def __init__(self,number, change):
         self.number = number
-        self.change = change
+        if isinstance(change,list):
+            self.change = change
+        else:
+            self.change = change.split(",")
         self.handled = False
     def encode(self):
-        return "ud,%s,%s" % (self.number,self.change)
+        return "ud,%s," % self.number + "".join([str(x)+"," for x in self.change])
 
 class scenario:
     def __init__(self, locations, flights, manifests, groups, itineraries, aircraft, people,start):

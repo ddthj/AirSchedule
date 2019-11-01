@@ -17,13 +17,19 @@ class client:
                 self.scn.decode(inbound)
             else:
                 print(inbound)
-                if inbound.find("ud") != -1:
-                    s = inbound.split(",")
-                    ud = update(int(s[1]),s[2])
-                    self.updates.append(ud)
-                    if ud.change.find("time") != -1:
-                        self.scn.time += int(ud.change.split("time")[1])
+                s = inbound.split(",")
 
+                if s[0] == "ud":
+                    ud = update(int(s[1]),s[2:])
+                    self.updates.append(ud)
+                    if ud.change[0] == "ut":
+                        self.scn.time += int(ud.change[1])
+                    elif ud.change[0] == "uf":
+                        for f in self.scn.flights:
+                            if f.ref == ud.change[1]:
+                                if ud.change[2] == "status":
+                                    f.status = ud.change[3]
+                                    break
 
     async def produce(self,ws):
         while True:

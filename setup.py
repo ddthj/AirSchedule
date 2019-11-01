@@ -1,5 +1,8 @@
 from objects import *
 
+def convert_time(time):
+    return int(time) //100 * 60 + int(time) % 100
+
 class gen:
     def __init__(self):
         self.person = 0
@@ -48,7 +51,7 @@ class parser:
                 self.aircraft.append(aircraft(ref,tail))
             elif item[0].find("time") != -1:
                 temp_time = int(item[0].split("time")[1])
-                self.start_time = ((temp_time // 100) * 60) + temp_time % 100
+                self.start_time = convert_time(temp_time)
 
         #second pass gets people and groups
         for item in obs:
@@ -145,18 +148,18 @@ class parser:
                         loc_ref = item[i].split("departure_location")[1]
                         local_dept_location = self.location_by_ref(loc_ref)
                     elif item[i].find("departure_time") != -1:
-                        local_dept_time = item[i].split("departure_time")[1]
+                        local_dept_time = convert_time(item[i].split("departure_time")[1])
                     elif item[i].find("arrival_location") != -1:
                         loc_ref = item[i].split("arrival_location")[1]
                         local_arrive_location = self.location_by_ref(loc_ref)
                     elif item[i].find("arrival_time") != -1:
-                        local_arrive_time = item[i].split("arrival_time")[1]
+                        local_arrive_time = convert_time(item[i].split("arrival_time")[1])
                     elif item[i].find("aircraft") != -1:
                         local_aircraft = self.aircraft_by_ref(item[i].split("aircraft")[1])
                     elif item[i].find("manifest") != -1:
                         local_manifest = self.manifest_by_ref(item[i].split("manifest")[1])
                 if int(local_arrive_time) < int(local_dept_time):
-                    local_arrive_time = str(int(local_arrive_time) + 2400)
+                    local_arrive_time = int(local_arrive_time) + 1440
                 self.flights.append(flight(ref,local_manifest,local_aircraft,local_dept_location,local_dept_time,local_arrive_location,local_arrive_time))
         return scenario(self.locations,self.flights, self.manifests, self.groups, self.itineraries, self.aircraft, self.people, self.start_time)
     

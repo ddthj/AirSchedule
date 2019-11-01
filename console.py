@@ -19,7 +19,6 @@ class client:
 
     async def run(self):
         async with websockets.connect("ws://localhost:51010") as ws:
-            #consume_task = asyncio.create_task(self.consume(ws))
             produce_task = asyncio.create_task(self.produce(ws))
             await produce_task
             await consume_task
