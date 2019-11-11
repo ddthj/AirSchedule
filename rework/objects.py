@@ -16,8 +16,8 @@ class scenario:
         else:
             self.id = kwargs.get("id")
             self.name = kwargs.get("name")
-            self.time = kwargs.get("time",None)
-            self.timescale =  kwargs.get("timescale",None)
+            self.time = int(kwargs.get("time",0))
+            self.timescale = int(kwargs.get("timescale",300))
             
 class aircraft:
     def __init__(self, data=None, **kwargs):

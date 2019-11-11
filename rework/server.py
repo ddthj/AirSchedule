@@ -8,7 +8,7 @@ import time
 
 class simulator:
     def __init__(self):
-        self.objects = parse(read("AOC Schedule.scn"))
+        self.objects = parse(read("AOC Schedule.scn"),["scenario"])
         self.scenario = self.objects["scenario"][0]
         self.clients = []
         self.updates = []
@@ -20,13 +20,10 @@ class simulator:
             await asyncio.sleep(.001)
             if time.time() > self.last + self.scenario.timescale:
                 self.last = time.time()
-                self.scn.time += 5
-                time_update = update(self.update_number,"ut,5")
-                self.updates.append(time_update)
-                self.update_number += 1
-                await self.send_update(time_update)
-                print(time_update.encode())
-
+                self.scenario.time += 5
+                #TODO- create update string
+                await self.send_update()
+            """
             for f in self.scn.flights:
                 if self.scn.time > f.departure_time - 10 and self.scn.time <= f.departure_time:
                     if f.status != "outgate":
@@ -62,10 +59,14 @@ class simulator:
                     self.updates.append(f_update)
                     self.update_number += 1
                     await self.send_update(f_update)
+            """
     
     async def send_update(self,update):
+        message = "ud,"+str(self.update_number)+","+update
+        self.updates.append(message)
+        self.update_number += 1
         for ws in self.clients:
-            await ws.send(update.encode())
+            await ws.send(message)
 
     async def join(self, ws):
         if ws not in self.clients:
