@@ -39,7 +39,7 @@ def read(file):
 
     #Turning each list into a dict, and storing it correctly in the objects dict
     for item in object_list:
-        most_recent_list = None #if our object has a list of items, this points to the most recently creted list
+        most_recent_dict = None #if our object has a dict/list of items, this points to the most recently creted dict
         temp = {}
         object_type, name = item[0].strip().split(" ")
         temp["type"] = object_type
@@ -49,14 +49,19 @@ def read(file):
             data = item[i].strip().split(" ")
             #First check to see if we need to append this line to a list, based on indentation
             if item[i].startswith("\t\t"):
-                temp[most_recent_list].append(item[i].strip())
+                #creates new dict entry if object type isn't already inside, else simply appends item to existing list
+                sub_obj_type, sub_obj_name = item[i].strip().split(" ")
+                if temp[most_recent_dict].get(sub_obj_type) != None:
+                    temp[most_recent_dict][sub_obj_type].append(sub_obj_name)
+                else:
+                    temp[most_recent_dict][sub_obj_type] = [sub_obj_name]
             else:
                 #Otherwise we process it as either an attribute or list definition depending on the number of args provided
                 if len(data) > 1 and len(data[1]) > 0:
                     temp[data[0]] = data[1]
                 else:
-                    most_recent_list = data[0]
-                    temp[data[0]] = []
+                    most_recent_dict = data[0]
+                    temp[data[0]] = {}
         #Finally we add the temp dict to our objects dict in the right type key
         objects[object_type].append(temp)
     return objects
@@ -65,7 +70,6 @@ def read(file):
 #ie - won't parse cargo if you don't tell it to parse cargo
 def parse(raw_objects,objects_types_to_parse):
     parsed_objects = {x : [] for x in objects_types_to_parse}
-
     for object_type in objects_types_to_parse:
         for item in raw_objects.get(object_type):
             if object_type == "scenario":
