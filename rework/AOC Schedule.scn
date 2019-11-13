@@ -1,6 +1,6 @@
 scenario 1
 	time 0230
-	timescale 300
+	timescale 2
 
 //locations
 location ATL

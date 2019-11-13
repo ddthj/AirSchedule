@@ -4,6 +4,13 @@
 #All objects defined via kwargs will default an attribute to None if it isn't provided
 #meaning not all attributes need to be listed in the scn file to create an object
 
+#Converts time from string format hh:mm to just minutes
+def convert_time(time):
+    if time != None:
+        return int(time) //100 * 60 + int(time) % 100
+    return 0
+
+#for encoding and decoding lists
 def encode_list(data):
     return "".join(x+"." for x in data)
 def decode_list(data):
@@ -16,7 +23,7 @@ class scenario:
         else:
             self.id = kwargs.get("id")
             self.name = kwargs.get("name")
-            self.time = int(kwargs.get("time",0))
+            self.time = convert_time(kwargs.get("time",0))
             self.timescale = int(kwargs.get("timescale",300))
             
 class aircraft:
@@ -44,9 +51,10 @@ class flight:
             self.id = kwargs.get("id")
             self.name = kwargs.get("name")
             self.departure_location = kwargs.get("departure_location",None)
-            self.departure_time = kwargs.get("departure_time",None)
+            self.departure_time = convert_time(kwargs.get("departure_time",None))
             self.arrival_location = kwargs.get("arrival_location",None)
-            self.arrival_time = kwargs.get("arrival_time",None)
+            self.arrival_time = convert_time(kwargs.get("arrival_time",None))
+            self.arrival_time += 1440 if self.arrival_time < self.departure_time else 0
             self.status = "scheduled"
             self.aircraft = kwargs.get("aircraft",None)
     def encode(self):

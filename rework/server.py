@@ -8,7 +8,7 @@ import time
 
 class simulator:
     def __init__(self):
-        self.objects = parse(read("AOC Schedule.scn"),["scenario"])
+        self.objects = parse(read("AOC Schedule.scn"),["scenario","flight"])
         self.scenario = self.objects["scenario"][0]
         self.clients = []
         self.updates = []
@@ -22,44 +22,20 @@ class simulator:
                 self.last = time.time()
                 self.scenario.time += 5
                 #TODO- create update string
-                await self.send_update()
-            """
-            for f in self.scn.flights:
-                if self.scn.time > f.departure_time - 10 and self.scn.time <= f.departure_time:
-                    if f.status != "outgate":
-                        f.status = "outgate"
-                        f_update = update(self.update_number,"uf," + str(f.ref) + "," + "status,"+ "outgate")
-                        self.updates.append(f_update)
-                        self.update_number += 1
-                        await self.send_update(f_update)
-                elif self.scn.time > f.departure_time and self.scn.time <= f.arrival_time - 10:
-                    if f.status != "offground":
-                        f.status = "offground"
-                        f_update = update(self.update_number,"uf," + str(f.ref)+ "," + "status,"+ "offground")
-                        self.updates.append(f_update)
-                        self.update_number += 1
-                        await self.send_update(f_update)
-                elif self.scn.time > f.arrival_time - 10 and self.scn.time <= f.arrival_time:
-                    if f.status != "onground":
-                        f.status = "onground"
-                        f_update = update(self.update_number,"uf," + str(f.ref) + "," + "status,"+ "onground")
-                        self.updates.append(f_update)
-                        self.update_number += 1
-                        await self.send_update(f_update)
-                elif self.scn.time > f.arrival_time:
-                    if f.status != "ingate":
-                        f.status = "ingate"
-                        f_update = update(self.update_number,"uf," + str(f.ref) + "," + "status,"+ "ingate")
-                        self.updates.append(f_update)
-                        self.update_number += 1
-                        await self.send_update(f_update)
-                elif self.scn.time <= f.departure_time - 10 and f.status != "scheduled":
-                    f.status = "scheduled"
-                    f_update = update(self.update_number,"uf," + str(f.ref) + "," + "status,"+ "scheduled")
-                    self.updates.append(f_update)
-                    self.update_number += 1
-                    await self.send_update(f_update)
-            """
+                #await self.send_update()
+            #TODO - send updates
+            print(self.scenario.time)
+            for item in self.objects["flight"]:
+                if self.scenario.time <= item.departure_time - 10 and item.status != "scheduled":
+                    item.status = "scheduled"
+                elif self.scenario.time > item.departure_time - 10 and self.scenario.time <= item.departure_time and item.status != "outgate":
+                    item.status = "outgate"
+                elif self.scenario.time > item.departure_time and self.scenario.time <= item.arrival_time-10 and item.status != "offground":
+                    item.status = "offground"
+                elif self.scenario.time > item.arrival_time-10 and self.scenario.time <= item.arrival_time and item.status != "onground":
+                    item.status = "onground"
+                elif self.scenario.time > item.arrival_time and item.status != "ingate":
+                    item.status = "ingate"
     
     async def send_update(self,update):
         message = "ud,"+str(self.update_number)+","+update
