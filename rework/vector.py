@@ -5,7 +5,8 @@ class Vec2:
         elif isinstance(args[0],list):
             self.data = args[0]
         else:
-            self.data = [x for x in args]    def __getitem__(self,key):
+            self.data = [x for x in args]
+    def __getitem__(self,key):
         return self.data[key]
     def __setitem__(self,key,value):
         self.data[key] = value
