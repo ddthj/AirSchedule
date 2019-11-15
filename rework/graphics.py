@@ -92,7 +92,6 @@ class gui:
         self.update(mode="load")
 
     def update(self,**kwargs):
-        self.window.fill(self.bg_color)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -100,7 +99,8 @@ class gui:
             elif event.type == pygame.VIDEORESIZE:
                 self.resolution = [event.dict['size'][0], event.dict['size'][1]]
                 self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
-        if not self.quit:                
+        if not self.quit:
+            self.window.fill(self.bg_color)
             if kwargs.get("mode","none") == "load":
                 center = element(None, size = self.resolution, color = [180,180,200])
                 center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)

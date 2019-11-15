@@ -24,7 +24,6 @@ class simulator:
                 #TODO- create update string
                 #await self.send_update()
             #TODO - send updates
-            print(self.scenario.time)
             for item in self.objects["flight"]:
                 if self.scenario.time <= item.departure_time - 10 and item.status != "scheduled":
                     item.status = "scheduled"
@@ -46,8 +45,7 @@ class simulator:
 
     async def join(self, ws):
         if ws not in self.clients:
-            self.clients.append(user)
-            await ws.send(self.objects["scenario"][0].encode())
+            self.clients.append(ws)
 
     async def leave(self, ws):
         self.clients.remove(ws)
@@ -58,18 +56,6 @@ class simulator:
             await self.join(websocket)
             async for message in websocket:
                 print(message)
-                if message.find("timescale") != -1:
-                    self.timescale = float(message.split("timescale")[1])
-                elif message.find("time") != -1:
-                    time = int(message.split("time")[1])
-                    minutes = (time//100 * 60) + time % 100
-                    delta = minutes - self.scn.time
-                    self.scn.time = minutes
-                    time_update = update(self.update_number,"ut,%s"%delta)
-                    self.updates.append(time_update)
-                    self.update_number += 1
-                    await self.send_update(time_update)
-                await websocket.send(message)
         finally:
             await self.leave(websocket)
             await websocket.close()
