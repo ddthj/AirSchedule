@@ -7,20 +7,17 @@ class client:
     def __init__(self):
         self.updates = []
         self.gui = gui()
-        self.quit = False
+        self.running = True
 
     async def consume(self,ws):
-        while True:
+        while self.running:
             inbound = await ws.recv()
-            if self.quit:
-                break
 
     async def produce(self,ws):
-        while True:
-            self.gui.update()
+        while self.running:
             if self.gui.quit:
-                self.quit = True
-                break
+                self.running = False
+            self.gui.update()
             await asyncio.sleep(.001)
 
     async def run(self):

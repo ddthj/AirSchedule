@@ -92,14 +92,13 @@ class gui:
         self.update(mode="load")
 
     def update(self,**kwargs):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                self.quit = True
-            elif event.type == pygame.VIDEORESIZE:
-                self.resolution = [event.dict['size'][0], event.dict['size'][1]]
-                self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
         if not self.quit:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.quit = True
+                elif event.type == pygame.VIDEORESIZE:
+                    self.resolution = [event.dict['size'][0], event.dict['size'][1]]
+                    self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
             self.window.fill(self.bg_color)
             if kwargs.get("mode","none") == "load":
                 center = element(None, size = self.resolution, color = [180,180,200])
@@ -111,6 +110,9 @@ class gui:
                 for item in self.elements:
                     item.render(self.window,i)
             pygame.display.update()
+        else:
+            pygame.quit()
+            
             
             
         
