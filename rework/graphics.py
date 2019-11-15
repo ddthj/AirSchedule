@@ -105,12 +105,12 @@ class gui:
                 center = element(None, size = self.resolution, color = [180,180,200])
                 center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)
                 self.elements = [center]
+            for item in self.elements:
+                item.update(self)
+            for i in range(5):
                 for item in self.elements:
-                    item.update(self)
-                for i in range(5):
-                    for item in self.elements:
-                        item.render(self.window,i)
-                pygame.display.update()
+                    item.render(self.window,i)
+            pygame.display.update()
             
             
         
