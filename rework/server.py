@@ -57,8 +57,9 @@ class simulator:
             async for message in websocket:
                 print(message)
         finally:
+            print('user left: ', websocket, path)
             await self.leave(websocket)
-            await websocket.close()
+            websocket.close()
 
 async def main():
     server = simulator()

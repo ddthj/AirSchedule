@@ -1,7 +1,9 @@
+import sys
 import asyncio
 import websockets
 from objects import *
 from graphics import *
+import logging
 
 class client:
     def __init__(self):
@@ -11,8 +13,11 @@ class client:
 
     async def consume(self,ws):
         while self.running:
-            inbound = await ws.recv()
-
+            try:
+                inbound = await ws.recv()
+            except websockets.exceptions.ConnectionClosed:
+                break
+            
     async def produce(self,ws):
         while self.running:
             if self.gui.quit:
@@ -21,15 +26,13 @@ class client:
             await asyncio.sleep(.001)
 
     async def run(self):
-        try:
-            async with websockets.connect("ws://localhost:51010") as ws:
-                consume_task = asyncio.create_task(self.consume(ws))
-                produce_task = asyncio.create_task(self.produce(ws))
-                await produce_task
-                await consume_task
-        except:
-            self.gui.update(mode="load",msg="Connection Failed")
-            await self.produce(None)
+        async with websockets.connect("ws://localhost:51010") as ws:
+            consume_task = asyncio.create_task(self.consume(ws))
+            produce_task = asyncio.create_task(self.produce(ws))
+            await asyncio.wait([consume_task,produce_task],return_when=asyncio.FIRST_COMPLETED)
+
+        self.gui.update(mode="load",msg="Connection Failed")
+        self.gui.update()
 
 x = client()
 asyncio.run(x.run())
