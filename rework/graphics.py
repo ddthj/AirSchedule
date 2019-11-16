@@ -16,14 +16,14 @@ class element:
         #Where the box sits relative to the parent, center, top, bottom, left, right, none
         self.align = kwargs.get("align","center")
         #offset from alignment, aka padding
-        self.offset = Vec2(kwargs.get("offset",Vec2(0,0)))
+        self.offset = Vec2(kwargs.get("offset",(0,0)))
         #size of box
-        self.size = Vec2(kwargs.get("size"), Vec2(0,0))
+        self.size = Vec2(kwargs.get("size", (0,0)))
         #width of box border, filled in if 0
         self.width = kwargs.get("width", 0)
         #size of box relative to parent, overrides self.size
         #axis-independent as well, can have a size for x and a ratio for y
-        self.ratio = Vec2(kwargs.get("ratio"), Vec2(0,0))
+        self.ratio = Vec2(kwargs.get("ratio", (0,0)))
         #If text is provided it will be the only part of the element rendered (no color fill or border
         self.text = kwargs.get("text","")
         self.font = kwargs.get("font", None)
@@ -33,22 +33,30 @@ class element:
         self.parent = parent
         if parent != None:
             parent.children.append(self)
+    
+    def siz(self):
+        if self.parent != None:
+            return Vec2(self.parent.siz()[0] * self.ratio[0] if self.ratio[0] != 0 else self.size[0],
+                    self.parent.siz()[1] * self.ratio[1] if self.ratio[1] != 0 else self.size[1])
+        else:
+            return self.size
 
     def loc(self,alt_size = None):
-        size = alt_size if alt_size != None else self.size
+        size = alt_size if alt_size != None else self.siz()
         if self.parent != None:
+            parent_size = self.parent.siz()
             if self.align == "center":
-                align = (self.parent.size / 2) - (size / 2)
+                align = (parent_size / 2) - (size / 2)
             elif self.align == "none":
                 align = Vec2(0,0)
             elif self.align == "left":
-                align = (size / 2) * Vec2(1,0)
+                align = (parent_size / 2) * Vec2(0,1) - (size / 2) * Vec2(0,1)
             elif self.align == "right":
-                align = self.parent.size - (size / 2) * Vec2(1,0)
+                align = (parent_size / 2) * Vec2(2,1) - (size)
             elif self.align == "top":
-                align = (size / 2) * Vec2(0,1)
+                align = (parent_size / 2) * Vec2(1,0) - (size / 2) * Vec2(1,0)
             elif self.align == "bottom":
-                align = self.parent.size - (size / 2) * Vec2(0,1)
+                align = (parent_size / 2) * Vec2(1,2) - (size / 2) 
             return self.parent.loc() + align + self.offset
         return self.offset
     def update(self,gui):
@@ -58,8 +66,8 @@ class element:
         if layer == self.layer:
             if len(self.text) == 0:
                 location = self.loc()
-                if not (location[0] > 1920 or location[0] + self.size[0] < 0):
-                    pygame.draw.rect(window,self.color, (*location.render(),*self.size.render()),self.width)
+                if not (location[0] > 1920 or location[0] + self.siz()[0] < 0):
+                    pygame.draw.rect(window,self.color, (*location.render(),*self.siz().render()),self.width)
             else:
                 if self.font != None:
                     text = self.font.render(self.text,1,self.color)
@@ -86,24 +94,29 @@ class gui:
 
         self.mode = 0
         self.elements = []
-        self.events = []
-        self.mode = "none"
+        self.events = {}
 
         self.update(mode="load")
 
     def update(self,**kwargs):
-        if not self.quit:
+        if not self.quit:            
+            self.window.fill(self.bg_color)
+            if kwargs.get("mode","none") == "load":
+                center = element(None, size = self.resolution, color = [180,180,200])
+                center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)
+                self.elements = [center]
+            elif kwargs.get("mode","none") == "home":
+                container = element(None, size = self.resolution, color = self.bg_color)
+                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top")
+                self.elements = [container]
+                
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.quit = True
                 elif event.type == pygame.VIDEORESIZE:
                     self.resolution = [event.dict['size'][0], event.dict['size'][1]]
                     self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
-            self.window.fill(self.bg_color)
-            if kwargs.get("mode","none") == "load":
-                center = element(None, size = self.resolution, color = [180,180,200])
-                center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)
-                self.elements = [center]
+                
             for item in self.elements:
                 item.update(self)
             for i in range(5):

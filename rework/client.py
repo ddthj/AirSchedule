@@ -19,6 +19,7 @@ class client:
                 break
             
     async def produce(self,ws):
+        self.gui.update(mode="home")
         while self.running:
             if self.gui.quit:
                 self.running = False
@@ -26,13 +27,17 @@ class client:
             await asyncio.sleep(.001)
 
     async def run(self):
-        async with websockets.connect("ws://localhost:51010") as ws:
-            consume_task = asyncio.create_task(self.consume(ws))
-            produce_task = asyncio.create_task(self.produce(ws))
-            await asyncio.wait([consume_task,produce_task],return_when=asyncio.FIRST_COMPLETED)
+        try:
+            async with websockets.connect("ws://localhost:51010") as ws:
+                consume_task = asyncio.create_task(self.consume(ws))
+                produce_task = asyncio.create_task(self.produce(ws))
+                await asyncio.wait([consume_task,produce_task],return_when=asyncio.FIRST_COMPLETED)
+        except OSError:
+            self.gui.update(mode="load",msg="Connection Failed")
+            while not self.gui.quit:
+                self.gui.update()
+            self.gui.update()
 
-        self.gui.update(mode="load",msg="Connection Failed")
-        self.gui.update()
 
 x = client()
 asyncio.run(x.run())

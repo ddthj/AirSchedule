@@ -4,6 +4,8 @@ class Vec2:
             self.data = args[0].data[:]
         elif isinstance(args[0],list):
             self.data = args[0]
+        elif isinstance(args[0],tuple):
+            self.data = list(args[0])
         else:
             self.data = [x for x in args]
     def __getitem__(self,key):
