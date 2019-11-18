@@ -10,16 +10,24 @@ class client:
         self.updates = []
         self.gui = gui()
         self.running = True
+        self.objects = {"aircraft":[],"flight":[]}
 
     async def consume(self,ws):
         while self.running:
             try:
                 inbound = await ws.recv()
+                for item in inbound.split(";"):
+                    if item.startswith("aircraft"):
+                        self.objects["aircraft"].append(aircraft(item))
+                    elif item.startswith("flight"):
+                        self.objects["flight"].append(flight(item))
+                self.gui.update(mode="flights_by_aircraft",aircraft=self.objects.get("aircraft",[]),flights=self.objects.get("flight",[]))                
+                        
             except websockets.exceptions.ConnectionClosed:
                 break
             
     async def produce(self,ws):
-        self.gui.update(mode="home")
+        self.gui.update(mode="flights_by_aircraft",aircraft=self.objects.get("aircraft",[]),flights=self.objects.get("flight",[]))
         while self.running:
             if self.gui.quit:
                 self.running = False

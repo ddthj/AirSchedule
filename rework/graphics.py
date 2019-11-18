@@ -6,6 +6,17 @@ def string_time(time):
     minutes = time % 60
     return "{:04d}".format(hours+minutes)
 
+#Event handler for the flights_by_aircraft page that allows scrolling through the schedule
+def scroll_handler(self,events):
+    for event in events:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                self.offset -= Vec2(50,0)
+            elif event.button == 5:
+                self.offset += Vec2(50,0)
+            if self.offset[0] > 0:
+                self.offset = Vec2(0,0)
+    
 #Box elements are the building blocks of the gui, they can either be boxes with/without fill or text
 class element:
     def __init__(self,parent=None,**kwargs):
@@ -24,23 +35,26 @@ class element:
         #size of box relative to parent, overrides self.size
         #axis-independent as well, can have a size for x and a ratio for y
         self.ratio = Vec2(kwargs.get("ratio", (0,0)))
-        #If text is provided it will be the only part of the element rendered (no color fill or border
+        #If text is provided it will be the only part of the element rendered unless there is a width assigned (no fill)
         self.text = kwargs.get("text","")
         self.font = kwargs.get("font", None)
-
+        #How this element responds to events and updates
+        self.handler = kwargs.get("handler",None)
+        #if this element renders
+        self.visible = kwargs.get("visible",True)
         #parent/child organization
         self.children = kwargs.get("children", [])
         self.parent = parent
         if parent != None:
             parent.children.append(self)
-    
+    #Returns the size of the element after adjusting via ratio
     def siz(self):
         if self.parent != None:
             return Vec2(self.parent.siz()[0] * self.ratio[0] if self.ratio[0] != 0 else self.size[0],
                     self.parent.siz()[1] * self.ratio[1] if self.ratio[1] != 0 else self.size[1])
         else:
             return self.size
-
+    #Returns the location of the element after factoring in parent's location, alignment, offsets, etc
     def loc(self,alt_size = None):
         size = alt_size if alt_size != None else self.siz()
         if self.parent != None:
@@ -52,16 +66,20 @@ class element:
             elif self.align == "left":
                 align = (parent_size / 2) * Vec2(0,1) - (size / 2) * Vec2(0,1)
             elif self.align == "right":
-                align = (parent_size / 2) * Vec2(2,1) - (size)
+                align = (parent_size / 2) * Vec2(2,1) - (size/2) * Vec2(2,1)
             elif self.align == "top":
                 align = (parent_size / 2) * Vec2(1,0) - (size / 2) * Vec2(1,0)
             elif self.align == "bottom":
-                align = (parent_size / 2) * Vec2(1,2) - (size / 2) 
+                align = (parent_size / 2) * Vec2(1,2) - (size/2) * Vec2(1,2)
             return self.parent.loc() + align + self.offset
         return self.offset
-    def update(self,gui):
+    #Allows the element to handle events if it has a handler, also calls children's update functions
+    def update(self,events):
+        if self.handler != None:
+            self.handler(self,events)
         for child in self.children:
-            child.update(gui)
+            child.update(events)
+    #Renders the element if it is visible, also calls children's update functions
     def render(self,window,layer):
         if layer == self.layer:
             if len(self.text) == 0:
@@ -69,10 +87,14 @@ class element:
                 if not (location[0] > 1920 or location[0] + self.siz()[0] < 0):
                     pygame.draw.rect(window,self.color, (*location.render(),*self.siz().render()),self.width)
             else:
+                text = self.font.render(self.text,1,self.color)
+                location = self.loc(Vec2(text.get_rect().width,text.get_rect().height))
                 if self.font != None:
-                    text = self.font.render(self.text,1,self.color)
-                    location = self.loc(Vec2(text.get_rect().width,text.get_rect().height))
-                    window.blit(text,location.render())
+                    if not (location[0] > 1920 or location[0] + self.siz()[0] < 0):
+                        window.blit(text,location.render())
+                        if self.width > 0:
+                            location = self.loc()
+                            pygame.draw.rect(window,self.color, (*location.render(),*self.siz().render()),self.width)
                 else:
                     print("text element not provided font")
         for child in self.children:
@@ -94,23 +116,63 @@ class gui:
 
         self.mode = 0
         self.elements = []
-        self.events = {}
 
+        self.mode = "load"
         self.update(mode="load")
 
     def update(self,**kwargs):
         if not self.quit:            
             self.window.fill(self.bg_color)
             if kwargs.get("mode","none") == "load":
+                self.mode = "load"
                 center = element(None, size = self.resolution, color = [180,180,200])
                 center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)
                 self.elements = [center]
             elif kwargs.get("mode","none") == "home":
+                self.mode = "home"
                 container = element(None, size = self.resolution, color = self.bg_color)
                 top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top")
                 self.elements = [container]
+            elif kwargs.get("mode","none") == "flights_by_aircraft":
+                self.mode = "flights_by_aircraft"
+                container = element(None, size = self.resolution, color = self.bg_color)
+                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top")
+                bottom = element(container, size=self.resolution,ratio=(0,0.9),align="bottom")
+                sidebar = element(bottom,align="left",color = [180,180,200], ratio=Vec2(0.1,1),layer=bottom.layer+4)
+                center = element(bottom,align="right", ratio=Vec2(0.9,1),layer=0)
+                time_box = element(sidebar, align="top",width=1,text="Time",font=self.font_25, size=Vec2(1,30),ratio=(1,0))
+                schedule = element(center,align="left", ratio=Vec2(0,1), size=(3675,0),color=[210,210,230],handler=scroll_handler)
+                time_row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1)
+                times = [element(time_row,size=Vec2(75,30),align="left",offset=Vec2((75*i)-25,0),text="{:02d}:{:02d}".format(30*i//60, 30*i%60),font=self.font_15) for i in range(49)]
+                aircraft_objects = kwargs.get("aircraft",[])
+                flight_objects = kwargs.get("flights",[])
+                aircraft_labels, aircraft_rows, flights = [], [], []
+                for i in range(len(aircraft_objects)):
+                    aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
+                    row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30))
+                    aircraft_rows.append(row)
+                    for flight in flight_objects:
+                        if flight.aircraft == aircraft_objects[i].name:
+                            if flight.status == "scheduled":
+                                box_color = [50,160,160]
+                            elif flight.status == "outgate":
+                                box_color = [50,200,200]
+                            elif flight.status == "offground":
+                                box_color = [50, 160, 68]
+                            elif flight.status == "onground":
+                                box_color = [50, 109, 160]
+                            elif flight.status == "ingate":
+                                box_color = [78, 104, 128]
+                            flight_box = element(row,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="left",offset=Vec2((flight.departure_time/30) * 75,0),layer=row.layer-1)
+                            flight_name = element(flight_box,text=flight.name,font=self.font_25)
+                            flight_dept_info = element(flight_box,text=flight.departure_location,font=self.font_15,align="left")
+                            flight_arri_info = element(flight_box,text=flight.arrival_location,font=self.font_15,align="right")
+                            flights.append(flight_box)
+                self.elements = [container]
+                    
                 
-            for event in pygame.event.get():
+            events = pygame.event.get()
+            for event in events:
                 if event.type == pygame.QUIT:
                     self.quit = True
                 elif event.type == pygame.VIDEORESIZE:
@@ -118,20 +180,10 @@ class gui:
                     self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
                 
             for item in self.elements:
-                item.update(self)
-            for i in range(5):
+                item.update(events)
+            for i in range(7):
                 for item in self.elements:
                     item.render(self.window,i)
             pygame.display.update()
         else:
             pygame.quit()
-            
-            
-            
-        
-
-    
-        
-        
-        
-        

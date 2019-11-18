@@ -8,7 +8,7 @@ import time
 
 class simulator:
     def __init__(self):
-        self.objects = parse(read("AOC Schedule.scn"),["scenario","flight"])
+        self.objects = parse(read("AOC Schedule.scn"),["scenario","flight","aircraft"])
         self.scenario = self.objects["scenario"][0]
         self.clients = []
         self.updates = []
@@ -46,6 +46,7 @@ class simulator:
     async def join(self, ws):
         if ws not in self.clients:
             self.clients.append(ws)
+            await ws.send("".join(x.encode() +";" for x in self.objects["aircraft"])+";"+"".join(x.encode() +";" for x in self.objects["flight"]))
 
     async def leave(self, ws):
         self.clients.remove(ws)
@@ -56,6 +57,8 @@ class simulator:
             await self.join(websocket)
             async for message in websocket:
                 print(message)
+        except websockets.ConnectionClosed:
+            print("user left improperly: ",websocket)            
         finally:
             print('user left: ', websocket, path)
             await self.leave(websocket)

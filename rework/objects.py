@@ -63,15 +63,15 @@ class flight:
             self.departure_location, self.departure_time,
             self.arrival_location, self.arrival_time,
             self.status, self.aircraft]
-        return "flight" + "".join("," + x for x in attributes_to_encode)
+        return "flight" + "".join("," + str(x) for x in attributes_to_encode)
     def decode(self,data):
         data = data.split(",")
         self.id = data[1]
         self.name = data[2]
         self.departure_location = data[3]
-        self.departure_time = data[4]
+        self.departure_time = int(data[4])
         self.arrival_location = data[5]
-        self.arrival_time = data[6]
+        self.arrival_time = int(data[6])
         self.status = data[7]
         self.aircraft = data[8]
 
