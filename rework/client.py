@@ -10,28 +10,35 @@ class client:
         self.updates = []
         self.gui = gui()
         self.running = True
-        self.objects = {"aircraft":[],"flight":[]}
+        self.objects = {"scenario":[],"aircraft":[],"flight":[]}
 
     async def consume(self,ws):
         while self.running:
             try:
+                new_items = False
                 inbound = await ws.recv()
                 for item in inbound.split(";"):
                     if item.startswith("aircraft"):
                         self.objects["aircraft"].append(aircraft(item))
+                        new_items = True
                     elif item.startswith("flight"):
                         self.objects["flight"].append(flight(item))
-                self.gui.update(mode="flights_by_aircraft",aircraft=self.objects.get("aircraft",[]),flights=self.objects.get("flight",[]))                
-                        
+                        new_items = True
+                    elif item.startswith("scenario"):
+                        self.objects["scenario"].append(scenario(item))
+                        new_items = True
+                if new_items == True:
+                    self.gui.update(self,mode="flights_by_aircraft")
+
             except websockets.exceptions.ConnectionClosed:
                 break
             
     async def produce(self,ws):
-        self.gui.update(mode="flights_by_aircraft",aircraft=self.objects.get("aircraft",[]),flights=self.objects.get("flight",[]))
+        self.gui.update(self,mode="flights_by_aircraft")
         while self.running:
             if self.gui.quit:
                 self.running = False
-            self.gui.update()
+            self.gui.update(self)
             await asyncio.sleep(.001)
 
     async def run(self):
@@ -41,10 +48,10 @@ class client:
                 produce_task = asyncio.create_task(self.produce(ws))
                 await asyncio.wait([consume_task,produce_task],return_when=asyncio.FIRST_COMPLETED)
         except OSError:
-            self.gui.update(mode="load",msg="Connection Failed")
+            self.gui.update(self,mode="load",msg="Connection Failed")
             while not self.gui.quit:
-                self.gui.update()
-            self.gui.update()
+                self.gui.update(self)
+            self.gui.update(self)
 
 
 x = client()

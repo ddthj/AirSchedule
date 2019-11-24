@@ -7,15 +7,22 @@ def string_time(time):
     return "{:04d}".format(hours+minutes)
 
 #Event handler for the flights_by_aircraft page that allows scrolling through the schedule
-def scroll_handler(self,events):
+def scroll_handler(self,client,events):
     for event in events:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:
-                self.offset -= Vec2(50,0)
+                self.offset -= Vec2(100,0)
             elif event.button == 5:
-                self.offset += Vec2(50,0)
+                self.offset += Vec2(100,0)
             if self.offset[0] > 0:
                 self.offset = Vec2(0,0)
+
+def time_line_handler(self,client,events):
+    scn = client.objects.get("scenario",[])
+    if len(scn) > 0:
+        time = scn[0].time
+        self.offset = Vec2(time*2.5,0)
+    
     
 #Box elements are the building blocks of the gui, they can either be boxes with/without fill or text
 class element:
@@ -74,11 +81,11 @@ class element:
             return self.parent.loc() + align + self.offset
         return self.offset
     #Allows the element to handle events if it has a handler, also calls children's update functions
-    def update(self,events):
+    def update(self,client,events):
         if self.handler != None:
-            self.handler(self,events)
+            self.handler(self,client,events)
         for child in self.children:
-            child.update(events)
+            child.update(client,events)
     #Renders the element if it is visible, also calls children's update functions
     def render(self,window,layer):
         if layer == self.layer:
@@ -118,9 +125,9 @@ class gui:
         self.elements = []
 
         self.mode = "load"
-        self.update(mode="load")
+        self.update(None,mode="load")
 
-    def update(self,**kwargs):
+    def update(self,client,**kwargs):
         if not self.quit:            
             self.window.fill(self.bg_color)
             if kwargs.get("mode","none") == "load":
@@ -135,21 +142,22 @@ class gui:
                 self.elements = [container]
             elif kwargs.get("mode","none") == "flights_by_aircraft":
                 self.mode = "flights_by_aircraft"
-                container = element(None, size = self.resolution, color = self.bg_color)
-                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top")
-                bottom = element(container, size=self.resolution,ratio=(0,0.9),align="bottom")
-                sidebar = element(bottom,align="left",color = [180,180,200], ratio=Vec2(0.1,1),layer=bottom.layer+4)
-                center = element(bottom,align="right", ratio=Vec2(0.9,1),layer=0)
-                time_box = element(sidebar, align="top",width=1,text="Time",font=self.font_25, size=Vec2(1,30),ratio=(1,0))
-                schedule = element(center,align="left", ratio=Vec2(0,1), size=(3675,0),color=[210,210,230],handler=scroll_handler)
-                time_row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1)
+                container = element(None, size = self.resolution,visible=False)
+                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top",layer=0)
+                bottom = element(container, size=self.resolution,ratio=(0,0.9),align="bottom",visible=False,layer=0)
+                sidebar = element(bottom,align="left",color = [180,180,200], ratio=Vec2(0.1,1),layer=2)
+                center = element(bottom,align="right", ratio=Vec2(0.9,1),layer=0,visible=False)
+                time_box = element(sidebar, align="top",width=1,text="Time",font=self.font_25, size=Vec2(1,30),ratio=(1,0),visible=False)
+                schedule = element(center,align="left", ratio=Vec2(0,1), size=(3675,0),color=[210,210,230],handler=scroll_handler,layer=0)
+                time_row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,layer=0)
                 times = [element(time_row,size=Vec2(75,30),align="left",offset=Vec2((75*i)-25,0),text="{:02d}:{:02d}".format(30*i//60, 30*i%60),font=self.font_15) for i in range(49)]
-                aircraft_objects = kwargs.get("aircraft",[])
-                flight_objects = kwargs.get("flights",[])
+                time_line = element(schedule,align="none",color=[255,0,0],layer=1, size=Vec2(2,1),ratio=Vec2(0,1),handler=time_line_handler)
+                aircraft_objects = client.objects.get("aircraft",[])
+                flight_objects = client.objects.get("flight",[])
                 aircraft_labels, aircraft_rows, flights = [], [], []
                 for i in range(len(aircraft_objects)):
                     aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
-                    row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30))
+                    row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30),visible=False)
                     aircraft_rows.append(row)
                     for flight in flight_objects:
                         if flight.aircraft == aircraft_objects[i].name:
@@ -169,8 +177,7 @@ class gui:
                             flight_arri_info = element(flight_box,text=flight.arrival_location,font=self.font_15,align="right")
                             flights.append(flight_box)
                 self.elements = [container]
-                    
-                
+            
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT:
@@ -178,10 +185,9 @@ class gui:
                 elif event.type == pygame.VIDEORESIZE:
                     self.resolution = [event.dict['size'][0], event.dict['size'][1]]
                     self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
-                
             for item in self.elements:
-                item.update(events)
-            for i in range(7):
+                item.update(client,events)
+            for i in range(4):
                 for item in self.elements:
                     item.render(self.window,i)
             pygame.display.update()

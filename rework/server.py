@@ -46,7 +46,7 @@ class simulator:
     async def join(self, ws):
         if ws not in self.clients:
             self.clients.append(ws)
-            await ws.send("".join(x.encode() +";" for x in self.objects["aircraft"])+";"+"".join(x.encode() +";" for x in self.objects["flight"]))
+            await ws.send(self.scenario.encode() + ";"+"".join(x.encode() +";" for x in self.objects["aircraft"])+";"+"".join(x.encode() +";" for x in self.objects["flight"]))
 
     async def leave(self, ws):
         self.clients.remove(ws)

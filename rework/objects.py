@@ -25,6 +25,15 @@ class scenario:
             self.name = kwargs.get("name")
             self.time = convert_time(kwargs.get("time",0))
             self.timescale = int(kwargs.get("timescale",300))
+    def encode(self):
+        attributes_to_encode = [self.time,self.timescale]
+        return "scenario" + "".join(","+str(x) for x in attributes_to_encode)
+    def decode(self,data):
+        data = data.split(",")
+        self.id = 1
+        self.name = ""
+        self.time = int(data[1])
+        self.timescale = float(data[2])
             
 class aircraft:
     def __init__(self, data=None, **kwargs):
