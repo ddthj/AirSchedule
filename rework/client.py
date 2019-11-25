@@ -5,6 +5,9 @@ from objects import *
 from graphics import *
 import logging
 
+def strip_update(item):
+    return "".join(x + "," for x in item.split(",")[2:])[:-1]
+
 class client:
     def __init__(self):
         self.updates = []
@@ -16,7 +19,7 @@ class client:
         while self.running:
             try:
                 new_items = False
-                inbound = await ws.recv()
+                inbound = await ws.recv()                
                 for item in inbound.split(";"):
                     if item.startswith("aircraft"):
                         self.objects["aircraft"].append(aircraft(item))
@@ -27,6 +30,22 @@ class client:
                     elif item.startswith("scenario"):
                         self.objects["scenario"].append(scenario(item))
                         new_items = True
+                    elif item.startswith("ud"):
+                        self.updates.append(item)
+                        data = item.split(",")
+                        if data[2] == "aircraft":
+                            for j in self.objects["aircraft"]:
+                                if j.id == data[3]:
+                                    j.decode(strip_update(item))
+                                    break
+                        elif data[2] == "flight":
+                            for j in self.objects["flight"]:
+                                if j.id == data[3]:
+                                    j.decode(strip_update(item))                     
+                                    break
+                        elif data[2] == "scenario":
+                            temp = scenario(strip_update(item))
+                            self.objects["scenario"] = [temp]
                 if new_items == True:
                     self.gui.update(self,mode="flights_by_aircraft")
 

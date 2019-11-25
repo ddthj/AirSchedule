@@ -21,20 +21,23 @@ class simulator:
             if time.time() > self.last + self.scenario.timescale:
                 self.last = time.time()
                 self.scenario.time += 5
-                #TODO- create update string
-                #await self.send_update()
-            #TODO - send updates
+                await self.send_update(self.scenario.encode())
             for item in self.objects["flight"]:
                 if self.scenario.time <= item.departure_time - 10 and item.status != "scheduled":
                     item.status = "scheduled"
+                    await self.send_update(item.encode())
                 elif self.scenario.time > item.departure_time - 10 and self.scenario.time <= item.departure_time and item.status != "outgate":
                     item.status = "outgate"
+                    await self.send_update(item.encode())
                 elif self.scenario.time > item.departure_time and self.scenario.time <= item.arrival_time-10 and item.status != "offground":
                     item.status = "offground"
+                    await self.send_update(item.encode())
                 elif self.scenario.time > item.arrival_time-10 and self.scenario.time <= item.arrival_time and item.status != "onground":
                     item.status = "onground"
+                    await self.send_update(item.encode())
                 elif self.scenario.time > item.arrival_time and item.status != "ingate":
                     item.status = "ingate"
+                    await self.send_update(item.encode())
     
     async def send_update(self,update):
         message = "ud,"+str(self.update_number)+","+update

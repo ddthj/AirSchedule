@@ -22,8 +22,25 @@ def time_line_handler(self,client,events):
     if len(scn) > 0:
         time = scn[0].time
         self.offset = Vec2(time*2.5,0)
+
+def flight_box_color(status):
+    if status == "scheduled":
+        return [50,160,160]
+    elif status == "outgate":
+        return [50,200,200]
+    elif status == "offground":
+        return [50, 160, 68]
+    elif status == "onground":
+        return [50, 109, 160]
+    elif status == "ingate":
+        return [78, 104, 128]
     
-    
+def flight_box_handler(self,client,events):
+    for i in client.objects["flight"]:
+        if i.id == self.id:
+            self.color = flight_box_color(i.status)
+            break
+
 #Box elements are the building blocks of the gui, they can either be boxes with/without fill or text
 class element:
     def __init__(self,parent=None,**kwargs):
@@ -161,17 +178,9 @@ class gui:
                     aircraft_rows.append(row)
                     for flight in flight_objects:
                         if flight.aircraft == aircraft_objects[i].name:
-                            if flight.status == "scheduled":
-                                box_color = [50,160,160]
-                            elif flight.status == "outgate":
-                                box_color = [50,200,200]
-                            elif flight.status == "offground":
-                                box_color = [50, 160, 68]
-                            elif flight.status == "onground":
-                                box_color = [50, 109, 160]
-                            elif flight.status == "ingate":
-                                box_color = [78, 104, 128]
-                            flight_box = element(row,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="left",offset=Vec2((flight.departure_time/30) * 75,0),layer=row.layer-1)
+                            box_color = flight_box_color(flight.status)
+                            flight_box = element(row,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="left",offset=Vec2((flight.departure_time/30) * 75,0),layer=row.layer-1,handler=flight_box_handler)
+                            flight_box.id = flight.id
                             flight_name = element(flight_box,text=flight.name,font=self.font_25)
                             flight_dept_info = element(flight_box,text=flight.departure_location,font=self.font_15,align="left")
                             flight_arri_info = element(flight_box,text=flight.arrival_location,font=self.font_15,align="right")
