@@ -29,7 +29,7 @@ class Vec2:
             return Vec2(self[0]*value[0], self[1]*value[1])
         else:
             return Vec2(self[0]*value, self[1]*value)
-    __rmul = __mul__
+    __rmul__ = __mul__
     def __truediv__(self,value):
         if isinstance(value,Vec2):
             return Vec2(self[0]/value[0] if value[0] != 0 else 0, self[1]/value[1] if value[1] != 0 else 0)

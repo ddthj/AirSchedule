@@ -1,108 +1,170 @@
 import pygame
+from vector import Vec2
+from objects import flight
 
+def inside(elem,point):
+    top_left = elem.loc()
+    bottom_right = top_left + elem.siz()
+    if top_left[0] < point[0] and bottom_right[0] > point[0] and top_left[1] < point[1] and bottom_right[1] > point[1]:
+        return True
+    return False
+
+#converts from m into hh:mm
 def string_time(time):
     hours = time // 60 * 100
     minutes = time % 60
     return "{:04d}".format(hours+minutes)
 
-class Vec2:
-    def __init__(self,*args):
-        self.data = args[0] if isinstance(args[0],list) else [x for x in args]
-    def __getitem__(self,key):
-        return self.data[key]
-    def __setitem__(self,key,value):
-        self.data[key] = value
-    def __str__(self):
-        return str(self.data)
-    def __add__(self,value):
-        if isinstance(value,Vec2):
-            return Vec2(self[0]+value[0], self[1]+value[1])
-        else:
-            return Vec2(self[0]+value, self[1]+value)
-    def __sub__(self,value):
-        if isinstance(value,Vec2):
-            return Vec2(self[0]-value[0], self[1]-value[1])
-        else:
-            return Vec2(self[0]-value, self[1]-value)
-    def __mul__(self,value):
-        if isinstance(value,Vec2):
-            return Vec2(self[0]*value[0], self[1]*value[1])
-        else:
-            return Vec2(self[0]*value, self[1]*value)
-    __rmul = __mul__
-    def __truediv__(self,value):
-        if isinstance(value,Vec2):
-            return Vec2(self[0]/value[0] if value[0] != 0 else 0, self[1]/value[1] if value[1] != 0 else 0)
-        else:
-            return Vec2(self[0]/value if value != 0 else 0, self[1]/value if value != 0 else 0)
-    def render(self):
-        return [int(self[0]), int(self[1])]
+#Event handler for the flights_by_aircraft page that allows scrolling through the schedule
+def scroll_handler(self,client,events):
+    for event in events:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                self.offset -= Vec2(100,0)
+            elif event.button == 5:
+                self.offset += Vec2(100,0)
+            if self.offset[0] > 0:
+                self.offset = Vec2(0,0)
 
-class box:
-    def __init__(self,parent,**kwargs):
+#handler that updates the position of the red time line
+def time_line_handler(self,client,events):
+    scn = client.objects.get("scenario",[])
+    if len(scn) > 0:
+        time = scn[0].time
+        self.offset = Vec2(time*2.5,0)
+
+#returns color based on status of flight
+def flight_box_color(status):
+    if status == "scheduled":
+        return [50,160,160]
+    elif status == "outgate":
+        return [50,200,200]
+    elif status == "offground":
+        return [50, 160, 68]
+    elif status == "onground":
+        return [50, 109, 160]
+    elif status == "ingate":
+        return [78, 104, 128]
+    
+def flight_box_handler(self,client,events):
+    flag = False
+    index = -1 + (self.parent.offset[1]//30) + self.offset[1] // 30
+    if self.selected == True:
+        mov = Vec2(*client.mouse) - self.start_pos
+        if mov[1] > 25 and index < len(client.objects["aircraft"])-1:
+            self.offset += Vec2(0,30)
+            self.start_pos += Vec2(0,30)
+        elif mov[1] < -25 and index > 0:
+            self.offset -= Vec2(0,30)
+            self.start_pos -= Vec2(0,30)
+    
+    for event in events:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and inside(self,client.mouse):
+                self.selected = True
+                self.start_pos = Vec2(*client.mouse)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                if self.selected == True:
+                    flag = True
+                self.selected = False
+                
+    for i in client.objects["flight"]:
+        if i.id == self.id:
+            self.color = flight_box_color(i.status)
+            if flag:
+                temp = flight(i.encode())
+                temp.aircraft = client.objects["aircraft"][index].id
+                client.pending_updates.append("ud,"+temp.encode())
+            break
+
+#Box elements are the building blocks of the gui, they can either be boxes with/without fill or text
+class element:
+    def __init__(self,parent=None,**kwargs):
+        #sets render layer, higher layers render on top of lower layers
+        self.layer = kwargs.get("layer",parent.layer+1) if parent != None else kwargs.get("layer", 0)
+        #color of the element
+        self.color = kwargs.get("color", [0, 0, 0])
+        #Where the box sits relative to the parent, center, top, bottom, left, right, none
+        self.align = kwargs.get("align","center")
+        #offset from alignment, aka padding
+        self.offset = Vec2(kwargs.get("offset",(0,0)))
+        #size of box
+        self.size = Vec2(kwargs.get("size", (0,0)))
+        #width of box border, filled in if 0
+        self.width = kwargs.get("width", 0)
+        #size of box relative to parent, overrides self.size
+        #axis-independent as well, can have a size for x and a ratio for y
+        self.ratio = Vec2(kwargs.get("ratio", (0,0)))
+        #If text is provided it will be the only part of the element rendered unless there is a width assigned (no fill)
+        self.text = kwargs.get("text","")
+        self.font = kwargs.get("font", None)
+        #How this element responds to events and updates
+        self.handler = kwargs.get("handler",None)
+        self.selected = False #flag used for flight box event handler
+        self.start_pos = Vec2(0,0) #vector used for flight box event handler
+        #if this element renders
+        self.visible = kwargs.get("visible",True)
+        #parent/child organization
+        self.children = kwargs.get("children", [])
         self.parent = parent
         if parent != None:
-            self.layer = kwargs.get("layer", parent.layer + 1)
-        else:
-            self.layer = kwargs.get("layer", 0)
-        self.location = kwargs.get("location", Vec2(0,0)) #relative location
-        self.size = kwargs.get("size",Vec2(10,10))
-        self.ratio = kwargs.get("ratio", None) #our size related to parent
-        self.color = kwargs.get("color", [0,0,0])
-        self.centered = kwargs.get("centered", False) #unused
-        #controls fill/boarder width
-        self.width= kwargs.get("width", 0)
-        #whether or not to center box around its location
-        self.children = []
-    def get_loc(self):
+            parent.children.append(self)
+    #Returns the size of the element after adjusting via ratio
+    def siz(self):
         if self.parent != None:
-            return self.parent.get_loc() + self.location
-        return self.location
+            return Vec2(self.parent.siz()[0] * self.ratio[0] if self.ratio[0] != 0 else self.size[0],
+                    self.parent.siz()[1] * self.ratio[1] if self.ratio[1] != 0 else self.size[1])
+        else:
+            return self.size
+    #Returns the location of the element after factoring in parent's location, alignment, offsets, etc
+    def loc(self,alt_size = None):
+        size = alt_size if alt_size != None else self.siz()
+        if self.parent != None:
+            parent_size = self.parent.siz()
+            if self.align == "center":
+                align = (parent_size / 2) - (size / 2)
+            elif self.align == "none":
+                align = Vec2(0,0)
+            elif self.align == "left":
+                align = (parent_size / 2) * Vec2(0,1) - (size / 2) * Vec2(0,1)
+            elif self.align == "right":
+                align = (parent_size / 2) * Vec2(2,1) - (size/2) * Vec2(2,1)
+            elif self.align == "top":
+                align = (parent_size / 2) * Vec2(1,0) - (size / 2) * Vec2(1,0)
+            elif self.align == "bottom":
+                align = (parent_size / 2) * Vec2(1,2) - (size/2) * Vec2(1,2)
+            return self.parent.loc() + align + self.offset
+        return self.offset
+    #Allows the element to handle events if it has a handler, also calls children's update functions
+    def update(self,client,events):
+        if self.handler != None:
+            self.handler(self,client,events)
+        for child in self.children:
+            child.update(client,events)
+    #Renders the element if it is visible, also calls children's render functions
     def render(self,window,layer):
         if layer == self.layer:
-            loc = self.get_loc()
-            if loc[0] +self.size[0] > 0 and loc[0] < 1920:
-                pygame.draw.rect(window,self.color, (*self.get_loc().render(),*self.size.render()),self.width)
-    def onPress(self):
-        pass
-    def onRelease(self):
-        pass
-    def update(self,gui):
-        if self.ratio != None:
-            if self.parent != None:
-                self.size = Vec2(self.parent.size[0]/self.ratio[0] if self.ratio[0] != 0 else self.size[0],
-                            self.parent.size[1]/self.ratio[1] if self.ratio[1] != 0 else self.size[1])
+            if len(self.text) == 0:
+                location = self.loc()
+                if not (location[0] > 1920 or location[0] + self.siz()[0] < 0):
+                    pygame.draw.rect(window,self.color, (*location.render(),*self.siz().render()),self.width)
             else:
-                self.size = Vec2(gui.resolution[0]/self.ratio[0] if self.ratio[0] != 0 else self.size[0],
-                                 gui.resolution[1]/self.ratio[1] if self.ratio[1] != 0 else self.size[1])
-
-class textbox:
-    def __init__(self,parent,text,**kwargs):
-        self.parent = parent
-        self.text = text
-        self.layer = kwargs.get("layer",parent.layer + 1)
-        self.color = kwargs.get("color", [0,0,0])
-        self.location = kwargs.get("location", parent.location)
-        self.centered = kwargs.get("centered", True)#text centered in textbox, not parent
-        self.size = kwargs.get("size", 15)
-        self.font = kwargs.get("font")
-    def get_loc(self):
-        return self.parent.get_loc() + self.location
-    def render(self,window,layer):
-        if layer == self.layer:
-            loc = self.get_loc()
-            if loc[0] >= 0 and loc[0] < 1920:
-                try:
-                    text = self.font.render(self.text,1,self.color)
-                except:
-                    pass
-                center = Vec2(0,0) if not self.centered else Vec2(text.get_rect().width//2,text.get_rect().height//2)
-                window.blit(text,(loc - center).render())
-    def update(self,gui):
-        pass
-
+                text = self.font.render(self.text,1,self.color)
+                location = self.loc(Vec2(text.get_rect().width,text.get_rect().height))
+                if self.font != None:
+                    if not (location[0] > 1920 or location[0] + self.siz()[0] < 0):
+                        window.blit(text,location.render())
+                        if self.width > 0:
+                            location = self.loc()
+                            pygame.draw.rect(window,self.color, (*location.render(),*self.siz().render()),self.width)
+                else:
+                    print("text element not provided font")
+        for child in self.children:
+            child.render(window,layer)
+    
 class gui:
-    def __init__(self,client):
+    def __init__(self):
         pygame.init()
         pygame.font.init()
         self.resolution = [1920,1050]
@@ -110,89 +172,78 @@ class gui:
         pygame.display.set_caption("AirSchedule")
         pygame.display.set_icon(pygame.image.load("icon.png"))
         self.bg_color = (100,100,100)
-        self.run = True
-        self.client = client
-        self.mode = 0
-        self.x_scroll = 0
-
-        top = box(None,color=[200,200,200], size=Vec2(self.resolution[0],self.resolution[1]//6),ratio=Vec2(1,0),layer=3)
-        side = box(None,color=[200,200,200], location=Vec2(0,self.resolution[1]//6),size=Vec2(self.resolution[0]//8,self.resolution[1]),ratio=Vec2(0,1),layer=3)
-
         self.font_15 = pygame.font.SysFont("courier",15)
         self.font_25 = pygame.font.SysFont("courier",25)
         self.font_30 = pygame.font.SysFont("courier",30)
+        self.quit = False
 
-        time_box = box(side,size=Vec2(side.size[0],30),width=2)
-        time_label = textbox(time_box,"Time",location=time_box.size/2,size=30,font=self.font_30)
+        self.mode = 0
+        self.elements = []
 
-        #time_box = box(top_bar,color=[200,200,200],layer=0, location=Vec2(0,top_bar.size[1]-25),size=Vec2(top_bar.size[0],20), ratio=Vec2(1,0))
-        #time_label = textbox(time_box,"Time",location=time_box.size/2,size=30)
-        self.elements = [
-            top,
-            side,
-            time_box,
-            time_label
-            ]
+        self.mode = "load"
+        self.update(None,mode="load")
 
-    def update(self):
-        msg = []
-        self.window.fill(self.bg_color)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                self.run = False
-            elif event.type == pygame.VIDEORESIZE:
-                self.resolution = [event.dict['size'][0], event.dict['size'][1]]
-                self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    self.x_scroll -= 50
-                elif event.button == 5:
-                    self.x_scroll += 50
-                if self.x_scroll < 0:
-                    self.x_scroll = 0
+    def update(self,client,**kwargs):
+        if not self.quit:
+            #self.window.fill(self.bg_color) #fills screen with bg color - not necessary if elements populate entire screen
 
-        center = box(None,color=[210,210,210],size=Vec2(3750,29*(1+len(self.client.aircraft))),location=Vec2(self.elements[1].size[0]-self.x_scroll,self.elements[0].size[1]))
-        temp = [center]
-        for a in range(len(self.client.aircraft)):
-            temp.append(box(center,size=Vec2(3750,30),location=Vec2(0, 29*(a+1)),width=2,layer=center.layer+2))
-        for b in range(49):
-            timetext = "{:02d}:{:02d}".format(30*b//60, 30*b%60)
-            temp.append(box(center,size=Vec2(1, 10 + 29 * (len(self.client.aircraft))),location=Vec2(50+(b*75),20)))
-            temp.append(textbox(center,timetext,location=Vec2(50 + 75*b,12),font=self.font_15))
-
-        for flight in self.client.flights:
-            i = self.client.aircraft.index([aircraft for aircraft in self.client.aircraft if aircraft.ref == flight.aircraft.ref][0])
-            if flight.status == "scheduled":
-                box_color = [50,160,160]
-            elif flight.status == "outgate":
-                box_color = [50,200,200]
-            elif flight.status == "offground":
-                box_color = [50, 160, 68]
-            elif flight.status == "onground":
-                box_color = [50, 109, 160]
-            elif flight.status == "ingate":
-                box_color = [78, 104, 128]
-            else:
-                box_color = [50,160,160]
-            flight_box = box(center,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),29),location=Vec2(((flight.departure_time/30) * 75)+50,29*(1+i)))
-            flight_name = textbox(flight_box,flight.ref,location=flight_box.size/2,size=25,font=self.font_25)
-            dept_name = textbox(flight_box,flight.departure_location.ref + " " + string_time(flight.departure_time),location=Vec2(0,1)*flight_box.size/2,size=15,font=self.font_15,centered=False)
-            arri_name = textbox(flight_box,flight.arrival_location.ref + " " + string_time(flight.arrival_time),location=Vec2(flight_box.size[0]-75,flight_box.size[1]/2),size=15,font=self.font_15,centered=False)
-            temp+= [flight_box,flight_name, dept_name,arri_name]
+            #sets elements to loading screen
+            if kwargs.get("mode","none") == "load":
+                self.mode = "load"
+                center = element(None, size = self.resolution, color = [180,180,200])
+                center_text = element(center, text=kwargs.get("msg","Connecting..."),font=self.font_30)
+                self.elements = [center]
+            #sets elements for home screen - unused screen
+            elif kwargs.get("mode","none") == "home":
+                self.mode = "home"
+                container = element(None, size = self.resolution, color = self.bg_color)
+                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top")
+                self.elements = [container]
+            #sets elements to display flights by aircraft
+            elif kwargs.get("mode","none") == "flights_by_aircraft":
+                self.mode = "flights_by_aircraft"
+                container = element(None, size = self.resolution,visible=False)
+                top = element(container, size=self.resolution,ratio=(0,0.1), color = [180,180,200],align="top",layer=0)
+                bottom = element(container, size=self.resolution,ratio=(0,0.9),align="bottom",visible=False,layer=0)
+                sidebar = element(bottom,align="left",color = [180,180,200], ratio=Vec2(0.1,1),layer=2)
+                center = element(bottom,align="right", ratio=Vec2(0.9,1),layer=0,visible=False)
+                time_box = element(sidebar, align="top",width=1,text="Time",font=self.font_25, size=Vec2(1,30),ratio=(1,0),visible=False)
+                schedule = element(center,align="left", ratio=Vec2(0,1), size=(3675,0),color=[210,210,230],handler=scroll_handler,layer=0)
+                time_row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,layer=0)
+                times = [element(time_row,size=Vec2(75,30),align="left",offset=Vec2((75*i)-25,0),text="{:02d}:{:02d}".format(30*i//60, 30*i%60),font=self.font_15) for i in range(49)]
+                time_line = element(schedule,align="none",color=[255,0,0],layer=1, size=Vec2(2,1),ratio=Vec2(0,1),handler=time_line_handler)
+                aircraft_objects = client.objects.get("aircraft",[])
+                flight_objects = client.objects.get("flight",[])
+                aircraft_labels, aircraft_rows, flights = [], [], []
+                for i in range(len(aircraft_objects)):
+                    aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
+                    row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30),visible=False)
+                    aircraft_rows.append(row)
+                    for flight in flight_objects:
+                        if flight.aircraft == aircraft_objects[i].name:
+                            box_color = flight_box_color(flight.status)
+                            flight_box = element(row,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="left",offset=Vec2((flight.departure_time/30) * 75,0),layer=row.layer-1,handler=flight_box_handler)
+                            flight_box.id = flight.id
+                            flight_name = element(flight_box,text=flight.name,font=self.font_25)
+                            flight_dept_info = element(flight_box,text=flight.departure_location,font=self.font_15,align="left")
+                            flight_arri_info = element(flight_box,text=flight.arrival_location,font=self.font_15,align="right")
+                            flights.append(flight_box)
+                self.elements = [container]
             
-        for i in range(len(self.client.aircraft)):
-            ac = box(self.elements[1], size=Vec2(self.elements[1].size[0],30),location=Vec2(0,29)*(1+i),width=2)
-            tx = textbox(ac,self.client.aircraft[i].tail,location=ac.size/2 + Vec2(0,2),size=30, font=self.font_30)
-            temp += [ac,tx]
-
-        temp.append(box(center,color=[255,0,0],size=Vec2(2,10+29*len(self.client.aircraft)),location=Vec2(50+ self.client.time*2.5,20)))
-
-        for element in self.elements:
-            element.update(self)
-        for i in range(10):
-            for element in (self.elements + temp):
-                element.render(self.window,i)
-        if self.run:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    self.quit = True
+                elif event.type == pygame.VIDEORESIZE:
+                    self.resolution = [event.dict['size'][0], event.dict['size'][1]]
+                    self.window = pygame.display.set_mode(self.resolution, pygame.RESIZABLE)
+            if client != None:
+                client.mouse = pygame.mouse.get_pos()
+            for item in self.elements:
+                item.update(client,events)
+            for i in range(4):
+                for item in self.elements:
+                    item.render(self.window,i)
             pygame.display.update()
-        return msg
+        else:
+            pygame.quit()
