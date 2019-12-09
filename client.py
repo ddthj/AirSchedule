@@ -43,7 +43,8 @@ class client:
                         elif data[2] == "flight":
                             for j in self.objects["flight"]:
                                 if j.id == data[3]:
-                                    j.decode(strip_update(item))                     
+                                    j.decode(strip_update(item))
+                                    new_items = True
                                     break
                         elif data[2] == "scenario":
                             temp = scenario(strip_update(item))
@@ -61,7 +62,9 @@ class client:
                 self.running = False
             self.gui.update(self)
             if len(self.pending_updates) > 0:
-                await ws.send(self.pending_updates.pop())
+                msg = "" + "".join(self.pending_updates.pop() + ";" for i in range(len(self.pending_updates)))
+                print(msg)
+                await ws.send(msg)
             await asyncio.sleep(.001)
 
     async def run(self):

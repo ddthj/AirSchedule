@@ -48,7 +48,7 @@ def flight_box_color(status):
     
 def flight_box_handler(self,client,events):
     flag = False
-    index = -1 + (self.parent.offset[1]//30) + self.offset[1] // 30
+    index = -1 + self.offset[1] // 30
     if self.selected == True:
         mov = Vec2(*client.mouse) - self.start_pos
         if mov[1] > 25 and index < len(client.objects["aircraft"])-1:
@@ -61,8 +61,10 @@ def flight_box_handler(self,client,events):
     for event in events:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1 and inside(self,client.mouse):
-                self.selected = True
-                self.start_pos = Vec2(*client.mouse)
+                for item in self.parent.children:
+                    if item.offset[1] == self.offset[1] and item.offset[0] >= self.offset[0]:
+                        item.selected = True
+                        item.start_pos = Vec2(*client.mouse)
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 if self.selected == True:
@@ -217,12 +219,12 @@ class gui:
                 aircraft_labels, aircraft_rows, flights = [], [], []
                 for i in range(len(aircraft_objects)):
                     aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
-                    row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30),visible=False)
-                    aircraft_rows.append(row)
+                    #row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30),visible=False)
+                    #aircraft_rows.append(row)
                     for flight in flight_objects:
                         if flight.aircraft == aircraft_objects[i].name:
                             box_color = flight_box_color(flight.status)
-                            flight_box = element(row,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="left",offset=Vec2((flight.departure_time/30) * 75,0),layer=row.layer-1,handler=flight_box_handler)
+                            flight_box = element(schedule,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="none",offset=Vec2((flight.departure_time/30) * 75,(1+i)*30),handler=flight_box_handler,layer = schedule.layer)
                             flight_box.id = flight.id
                             flight_name = element(flight_box,text=flight.name,font=self.font_25)
                             flight_dept_info = element(flight_box,text=flight.departure_location,font=self.font_15,align="left")

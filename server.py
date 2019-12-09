@@ -62,14 +62,18 @@ class simulator:
         try:
             await self.join(websocket)
             async for message in websocket:
+                print(message)
                 if message.startswith("ud"):
+                    re = ""
                     for item in message.split(";"):
-                        data = item.split(",")
-                        if item[1] == "flight":
-                            for j in self.objects["flight"]:
-                                if j.id == data[2]:
-                                    j.decode(strip_update(item,1))
-                                    await self.send_update(j.encode())
+                        if len(item) > 0:
+                            data = item.split(",")
+                            if item[1] == "flight":
+                                for j in self.objects["flight"]:
+                                    if j.id == data[2]:
+                                        j.decode(strip_update(item,1))
+                                        re += j.encode() + ";"
+                    await self.send_update(re)
                             
         except websockets.ConnectionClosed:
             print("user left improperly: ",websocket)            
