@@ -43,12 +43,19 @@ class simulator:
                     await self.send_update(item.encode())
     
     async def send_update(self,update):
-        message = "ud,"+str(self.update_number)+","+update
-        self.updates.append(message)
-        self.update_number += 1
+        if isinstance(update,list):
+            message = ""
+            for item in update:
+                message += "ud," + str(self.update_number)+","+item+";"
+                self.updates.append(message)
+                self.update_number += 1
+        else:
+            message = "ud,"+str(self.update_number)+","+update
+            self.updates.append(message)
+            self.update_number += 1
         for ws in self.clients:
             await ws.send(message)
-
+            
     async def join(self, ws):
         if ws not in self.clients:
             self.clients.append(ws)
@@ -62,18 +69,18 @@ class simulator:
         try:
             await self.join(websocket)
             async for message in websocket:
-                print(message)
                 if message.startswith("ud"):
-                    re = ""
+                    updates = []
                     for item in message.split(";"):
                         if len(item) > 0:
                             data = item.split(",")
-                            if item[1] == "flight":
+                            if data[1] == "flight":
                                 for j in self.objects["flight"]:
                                     if j.id == data[2]:
                                         j.decode(strip_update(item,1))
-                                        re += j.encode() + ";"
-                    await self.send_update(re)
+                                        ud = j.encode()
+                                        updates.append(ud)
+                    await self.send_update(updates)
                             
         except websockets.ConnectionClosed:
             print("user left improperly: ",websocket)            

@@ -49,6 +49,8 @@ def flight_box_color(status):
 def flight_box_handler(self,client,events):
     flag = False
     index = -1 + self.offset[1] // 30
+    f = client.objects["flight"][self.ref]
+    
     if self.selected == True:
         mov = Vec2(*client.mouse) - self.start_pos
         if mov[1] > 25 and index < len(client.objects["aircraft"])-1:
@@ -57,6 +59,12 @@ def flight_box_handler(self,client,events):
         elif mov[1] < -25 and index > 0:
             self.offset -= Vec2(0,30)
             self.start_pos -= Vec2(0,30)
+    else:
+        for i in range(len(client.objects["aircraft"])):
+            if client.objects["aircraft"][i].id == f.aircraft:
+                break
+        self.offset = Vec2((f.departure_time/30) * 75,(i+1)*30)
+    
     
     for event in events:
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -70,15 +78,12 @@ def flight_box_handler(self,client,events):
                 if self.selected == True:
                     flag = True
                 self.selected = False
-                
-    for i in client.objects["flight"]:
-        if i.id == self.id:
-            self.color = flight_box_color(i.status)
-            if flag:
-                temp = flight(i.encode())
-                temp.aircraft = client.objects["aircraft"][index].id
-                client.pending_updates.append("ud,"+temp.encode())
-            break
+    
+    self.color = flight_box_color(f.status)
+    if flag:
+        temp = flight(f.encode())
+        temp.aircraft = client.objects["aircraft"][index].id
+        client.pending_updates.append("ud,"+temp.encode())   
 
 #Box elements are the building blocks of the gui, they can either be boxes with/without fill or text
 class element:
@@ -216,19 +221,21 @@ class gui:
                 time_line = element(schedule,align="none",color=[255,0,0],layer=1, size=Vec2(2,1),ratio=Vec2(0,1),handler=time_line_handler)
                 aircraft_objects = client.objects.get("aircraft",[])
                 flight_objects = client.objects.get("flight",[])
-                aircraft_labels, aircraft_rows, flights = [], [], []
+                aircraft_labels, aircraft_rows, flights = [], [], []                    
+                
                 for i in range(len(aircraft_objects)):
                     aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
                     #row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,offset=Vec2(0,(1+i)*30),visible=False)
                     #aircraft_rows.append(row)
-                    for flight in flight_objects:
-                        if flight.aircraft == aircraft_objects[i].name:
-                            box_color = flight_box_color(flight.status)
-                            flight_box = element(schedule,color=box_color,size=Vec2((((flight.arrival_time-flight.departure_time)/30) * 75),30),align="none",offset=Vec2((flight.departure_time/30) * 75,(1+i)*30),handler=flight_box_handler,layer = schedule.layer)
-                            flight_box.id = flight.id
-                            flight_name = element(flight_box,text=flight.name,font=self.font_25)
-                            flight_dept_info = element(flight_box,text=flight.departure_location,font=self.font_15,align="left")
-                            flight_arri_info = element(flight_box,text=flight.arrival_location,font=self.font_15,align="right")
+                    for j in range(len(flight_objects)):
+                        f = flight_objects[j]
+                        if f.aircraft == aircraft_objects[i].name:
+                            box_color = flight_box_color(f.status)
+                            flight_box = element(schedule,color=box_color,size=Vec2((((f.arrival_time-f.departure_time)/30) * 75),30),align="none",offset=Vec2((f.departure_time/30) * 75,(1+i)*30),handler=flight_box_handler,layer = schedule.layer)
+                            flight_box.ref = j
+                            flight_name = element(flight_box,text=f.name,font=self.font_25)
+                            flight_dept_info = element(flight_box,text=f.departure_location,font=self.font_15,align="left")
+                            flight_arri_info = element(flight_box,text=f.arrival_location,font=self.font_15,align="right")
                             flights.append(flight_box)
                 self.elements = [container]
             
