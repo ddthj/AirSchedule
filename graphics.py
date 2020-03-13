@@ -60,11 +60,10 @@ def flight_box_handler(self,client,events):
             self.offset -= Vec2(0,30)
             self.start_pos -= Vec2(0,30)
     else:
-        for i in range(len(client.objects["aircraft"])):
-            if client.objects["aircraft"][i].id == f.aircraft:
+        for z in range(len(client.objects["aircraft"])):
+            if client.objects["aircraft"][z].id == f.aircraft:
+                #self.offset = Vec2((f.departure_time/30) * 75,(z+1)*30)
                 break
-        self.offset = Vec2((f.departure_time/30) * 75,(i+1)*30)
-    
     
     for event in events:
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -219,9 +218,9 @@ class gui:
                 time_row = element(schedule,size=Vec2(1,30),ratio=Vec2(1,0),align="top",width=1,layer=0)
                 times = [element(time_row,size=Vec2(75,30),align="left",offset=Vec2((75*i)-25,0),text="{:02d}:{:02d}".format(30*i//60, 30*i%60),font=self.font_15) for i in range(49)]
                 time_line = element(schedule,align="none",color=[255,0,0],layer=1, size=Vec2(2,1),ratio=Vec2(0,1),handler=time_line_handler)
-                aircraft_objects = client.objects.get("aircraft",[])
-                flight_objects = client.objects.get("flight",[])
-                aircraft_labels, aircraft_rows, flights = [], [], []                    
+                aircraft_objects = client.objects["aircraft"]
+                flight_objects = client.objects["flight"]
+                aircraft_labels, aircraft_rows, flights = [], [], []
                 
                 for i in range(len(aircraft_objects)):
                     aircraft_labels.append(element(sidebar,align="top",width=1,text=aircraft_objects[i].tail_number,font=self.font_25,size=Vec2(1,30),ratio=(1,0),offset=Vec2(0,(1+i)*30)))
