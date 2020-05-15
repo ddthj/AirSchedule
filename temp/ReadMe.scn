@@ -1,0 +1,80 @@
+//This is a scenario file
+//Any line with a "//" will be ignored, regardless of its location within the line
+
+//Objects with attributes are created like so:
+
+objectType objectName															//
+	attributeName attributeValue												//
+
+//No two objects of the same type should share a name
+
+//It is also possible to create an attribute that references another object within this file
+//The parser will error if it can't find the referenced object
+
+objectType objectName															//
+	attributeName attributeType referenceName									//
+	
+	
+//This creates a scenarioObject for the simulator
+//It contains the start time and day
+//It also contains the timescale, which is how fast the simulator will run relative to real time
+
+scenario example
+	date 2020-01-01T02:30:00
+	timescale 200
+
+//Time values should follow ISO 8601, YYYY-MM-DDTHH:MM:SS
+
+//It is worth noting that the parser does not require attributes to be defined for scenarios/flights/etc,
+//But the simulator will crash if it tries to access an attribute that wasn't defined
+	
+//Here we define some locations
+//The presence of comma(s) in the attributeValue turns the attributeValue into a list. There
+//should be no spaces between items
+//Don't be confused by the repetition of "aircraft," one is the attribute name, and the second
+//is the attribute type since we are creating a reference
+
+location MCO
+	aircraft aircraft N402ER,N403ER,
+
+location DAB
+	aircraft aircraft N401ER,
+
+//CLT has no aircraft, but we still define the list with a comma
+
+location CLT
+	aircraft aircraft ,
+	
+//Creating the aircraft
+
+aircraft N401ER
+	tail_number N401ER
+
+aircraft N402ER
+	tail_number N402ER
+
+aircraft N403ER
+	tail_number N403ER
+
+//Creating some flights
+
+flight 0001
+	dept_loc location DAB
+	arri_loc location CLT
+	dept_time 2020-01-01T03:00:00
+	arri_time 2020-01-01T04:30:00
+	aircraft aircraft N401ER
+
+flight 0002
+	dept_loc location CLT
+	arri_loc location MCO
+	dept_time 2020-01-01T05:00:00
+	arri_time 2020-01-01T06:00:00
+	aircraft aircraft N401ER
+
+flight 0003
+	dept_loc location MCO
+	arri_loc location DAB
+	dept_time 2020-01-01T08:00:00
+	arri_time 2020-01-01T08:45:00
+	aircraft aircraft N403ER

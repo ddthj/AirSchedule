@@ -44,6 +44,7 @@ class client:
                             for j in self.objects["flight"]:
                                 if j.id == data[3]:
                                     j.decode(strip_update(item))
+                                    new_items = True
                                     break
                         elif data[2] == "scenario":
                             temp = scenario(strip_update(item))
