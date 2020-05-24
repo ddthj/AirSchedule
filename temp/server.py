@@ -27,13 +27,14 @@ def encode_flight(fl):
     # As this packet has a fixed structure, the attribute types don't need
     # to be sent. ie- the client knows that the third item is the name of a
     # location
-    return "%s,%s,%s,%s,%s,%s,%s" % (fl.object_type,
-                                     fl.object_name,
-                                     fl.dept_loc.object_name,
-                                     fl.arri_loc.object_name,
-                                     fl.dept_time.isoformat(),
-                                     fl.arri_time.isoformat(),
-                                     fl.aircraft.object_name)
+    return "%s,%s,%s,%s,%s,%s,%s,%s" % (fl.object_type,
+                                        fl.object_name,
+                                        fl.dept_loc.object_name,
+                                        fl.arri_loc.object_name,
+                                        fl.dept_time.isoformat(),
+                                        fl.arri_time.isoformat(),
+                                        fl.aircraft.object_name,
+                                        fl.status)
 
 
 class Server:
@@ -66,8 +67,8 @@ class Server:
                 try:
                     # Encode and send event
                     await ws.send(event.encode())
-                except:
-                    print("failed to send %s to %s" % (event.encode(), ws))
+                except Exception as e:
+                    print("failed to send %s to %s... %s" % (event.encode(), ws, e))
         print("sent %s events to %s clients" % (len(events), len(self.clients)))
 
     # Sends pertinent information about the simulation state to a given client
@@ -81,12 +82,9 @@ class Server:
             message += encode_flight(flight) + "`"
 
         try:
-            ws.send(message)
+            await ws.send(message)
         except Exception as e:
-
             print("Failed to send state to client, ", e)
-
-            # Handles client connections as they are created
 
     async def handler(self, ws, path):
         print('user joined: ', ws, path)
@@ -98,12 +96,12 @@ class Server:
             print("user left improperly: ", ws)
         finally:
             await self.leave(ws)
-            ws.close()
+            await ws.close()
 
     # The main loop that runs the simulation
-    async def main(self):
-        await websockets.serve(self.handler, 'localhost', 51010)
+    async def run(self):
         while self.running:
+            await asyncio.sleep(.001)
             if time.time() - self.time_between_ticks > self.last_tick:
                 self.last_tick = time.time()
                 dt = timedelta(seconds=(self.time_between_ticks * self.sim.objects["scenario"][0].timescale))
@@ -112,6 +110,11 @@ class Server:
                 await self.send_events(events)
 
 
+async def main():
+    server = Server()
+    await websockets.serve(server.handler, 'localhost', 51010)
+    await server.run()
+
+
 if __name__ == "__main__":
-    x = Server()
-    asyncio.run(x.main())
+    asyncio.run(main())
