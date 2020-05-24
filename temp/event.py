@@ -8,76 +8,78 @@ changing object attributes as the simulation progresses
 Events are used to update clients on the state of the simulation
 And support undo actions
 """
-from setup import simObject
+from setup import SimObject
 
-class event_id_generator:
+
+class EventIdGenerator:
     def __init__(self):
         self.id = 0
+
     def get(self):
         self.id += 1
         return self.id
 
-EVENT_ID_GENERATOR = event_id_generator()
 
-class event:
-    def __init__(self,ident,reference,attributeName,old_value,new_value):
+EVENT_ID_GENERATOR = EventIdGenerator()
+
+
+class Event:
+    def __init__(self, ident, reference, attribute_name, old_value, new_value):
         self.ident = ident
-        #a reference to the object that was affected by the event
+        # a reference to the object that was affected by the event
         self.reference = reference
-        #The attribute affected
-        self.attributeName = attributeName
-        #the old and new value of the attribute
+        # The attribute affected
+        self.attributeName = attribute_name
+        # the old and new value of the attribute
         self.old_value = old_value
         self.new_value = new_value
 
-    #restores the original value and returns a new event that documents the undo
-    def undo(self,ident):
-        self.reference.__setattr__(self.attributeName,self.old_value)
-        return event(ident,self.reference,self.attributeName,self.new_value,self.old_value)
-        
-    #returns a string that describes the event
+    # restores the original value and returns a new event that documents the undo
+    def undo(self, ident):
+        self.reference.__setattr__(self.attributeName, self.old_value)
+        return Event(ident, self.reference, self.attributeName, self.new_value, self.old_value)
+
+    # returns a string that describes the event
     def encode(self):
-        message = "%s,%s,%s,%s," % (self.ident,self.reference.objectType,self.reference.objectName,self.attributeName)
-        if isinstance(self.new_value,list):
+        message = "%s,%s,%s,%s," % (
+            self.ident, self.reference.object_type, self.reference.object_name, self.attributeName)
+        if isinstance(self.new_value, list):
             if len(self.new_value) > 0:
-                if isinstance(self.new_value[0],simObject):
-                    message += str(self.new_value[0].objectType) + "," + "".join(x.objectName + ";" for x in self.new_value)
+                if isinstance(self.new_value[0], SimObject):
+                    message += str(self.new_value[0].object_type) + "," + "".join(
+                        x.object_name + ";" for x in self.new_value)
                 else:
                     message += "".join(str(x) + ";" for x in self.new_value)
             else:
                 message += ";"
-        elif isinstance(self.new_value,simObject):
-            message += str(self.new_value.objectType) + "," + str(self.new_value.objectName)
+        elif isinstance(self.new_value, SimObject):
+            message += str(self.new_value.object_type) + "," + str(self.new_value.object_name)
         else:
             message += str(self.new_value)
-        
+
         return message
 
-#decodes an encoded event. This serves as an example and isn't utilized on the server's side
+
+"""
+# decodes an encoded event. This serves as an example and isn't utilized on the server's side
 def decode_event(string):
     data = string.split(",")
     ident = int(data[0])
-    objectType = data[1]
-    objectName = data[2]
-    attributeName = data[3]
+    object_type = data[1]
+    object_name = data[2]
+    attribute_name = data[3]
     new_value = None
-    referenceType = None
-    referenceName = None
-    #determine if the attribute is a reference
+    reference_type = None
+    reference_name = None
+    # determine if the attribute is a reference
     if len(data) > 5:
-        referenceType = data[4]
-        referenceName = data[5]
-        #check to see if our reference is actually a list of references
-        if referenceName.split(";") > 1:
-            referenceName = [x for x in data[5].split(";") if len(x) > 0]
+        reference_type = data[4]
+        reference_name = data[5]
+        # check to see if our reference is actually a list of references
+        if reference_name.split(";") > 1:
+            reference_name = [x for x in data[5].split(";") if len(x) > 0]
     elif data[4].split(";") > 1:
         new_value = [x for x in data[4].split(";") if len(x) > 0]
     else:
         new_value = data[4]
-    
-            
-            
-        
-        
-        
-        
+"""

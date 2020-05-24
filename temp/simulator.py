@@ -5,32 +5,33 @@ AirSchedule Simulator
 This file contains the simulator class, which handles events that occur
 as the scenario is played through
 
-It also contains handlers and utilities for managing the simObjects provided
+It also contains handlers and utilities for managing the SimObjects provided
 by the parser
 """
-import time
 from setup import get_objects_from_file
 from datetime import datetime, timedelta
 from exceptions import *
-from event import event, EVENT_ID_GENERATOR
+from event import Event, EVENT_ID_GENERATOR
 
-#Converts a string to a datetime object
-#Includes error handling
+
+# Converts a string to a datetime object
+# Includes error handling
 def convert_datetime(string_time):
     try:
         return datetime.fromisoformat(string_time)
     except:
         raise TimeNotISOException(string_time)
-    return None
 
-#simObject flights store their departure/arrival times in a string
-#When we import them here, we want to convert the string to a datetime
-def init_flight(flight,date):
+
+# simObject flights store their departure/arrival times in a string
+# When we import them here, we want to convert the string to a datetime
+def init_flight(flight, date):
     flight.dept_time = convert_datetime(flight.dept_time)
     flight.arri_time = convert_datetime(flight.arri_time)
-    update_flight_status(flight,date)
+    update_flight_status(flight, date)
 
-#Same for the scenario's current date
+
+# Same for the scenario's current date
 def init_scenario(scenario):
     scenario.date = convert_datetime(scenario.date)
     try:
@@ -38,66 +39,70 @@ def init_scenario(scenario):
     except:
         raise BadFormatException(scenario.timescale)
 
-#Sets the status of the flight. Returns a list of events if status was changed
-#Could be expanded to incorperate delays, breakdowns, etc
-def update_flight_status(flight,time):
+
+# Sets the status of the flight. Returns a list of events if status was changed
+# Could be expanded to incorporate delays, breakdowns, etc
+def update_flight_status(flight, time):
     flag = False
     events = []
-    #If the flight was just imported by the parser, it won't have a status
-    #So first we check to see if it has the status attribute and add it as necessary
-    if hasattr(flight,"status"):
+    # If the flight was just imported by the parser, it won't have a status
+    # So first we check to see if it has the status attribute and add it as necessary
+    if hasattr(flight, "status"):
         temp = flight.status
     else:
         temp = "scheduled"
         flag = True
-    
+
     if time <= flight.dept_time:
         flight.status = "scheduled"
-    elif time > flight.dept_time and time <= flight.dept_time + timedelta(minutes=10):
+    elif flight.dept_time < time <= flight.dept_time + timedelta(minutes=10):
         flight.status = "outgate"
-    elif time > flight.dept_time + timedelta(minutes=10) and time <= flight.arri_time - timedelta(minutes=10) :
+    elif flight.dept_time + timedelta(minutes=10) < time <= flight.arri_time - timedelta(minutes=10):
         flight.status = "offground"
-    elif time > flight.arri_time - timedelta(minutes=10) and time <= flight.arri_time:
+    elif flight.arri_time - timedelta(minutes=10) < time <= flight.arri_time:
         flight.status = "onground"
     else:
         flight.status = "ingate"
-    
+
     if not (flight.status == temp or flag):
-        events.append(event(EVENT_ID_GENERATOR.get(),flight,"status",temp,flight.status))
+        events.append(Event(EVENT_ID_GENERATOR.get(), flight, "status", temp, flight.status))
         if flight.status == "offground":
-            #Flight has left the departure location, we need another event to remove it from that location's list of aircraft
+            # Flight has left the depart location, we need another event to remove it from that location's aircraft
             temp_aircraft = flight.dept_loc.aircraft[:]
             temp_aircraft.remove(flight.aircraft)
-            events.append(event(EVENT_ID_GENERATOR.get(),flight.dept_loc,"aircraft",flight.dept_loc.aircraft,temp_aircraft))
+            events.append(
+                Event(EVENT_ID_GENERATOR.get(), flight.dept_loc, "aircraft", flight.dept_loc.aircraft, temp_aircraft))
         if flight.status == "onground":
             temp_aircraft = flight.arri_loc.aircraft[:] + [flight.aircraft]
-            events.append(event(EVENT_ID_GENERATOR.get(),flight.arri_loc,"aircraft",flight.arri_loc.aircraft[:],temp_aircraft))
+            events.append(Event(EVENT_ID_GENERATOR.get(), flight.arri_loc, "aircraft", flight.arri_loc.aircraft[:],
+                                temp_aircraft))
             flight.arri_loc.aircraft.append(flight.aircraft)
-            
+
     return events
 
-#The simulator class handles anything simulated
-#The passing of time, flights, etc
-#A handler should be created for every type of simObject you want to simulate
-class simulator:
+
+# The simulator class handles anything simulated
+# The passing of time, flights, etc
+# A handler should be created for every type of simObject you want to simulate
+class Simulator:
     def __init__(self):
         self.objects = get_objects_from_file("ReadMe.scn")
 
-        #ensuring a scenario is defined
+        # ensuring a scenario is defined
         if self.objects.get("scenario"):
-            #Custom setup for the scenario object(s):
+            # Custom setup for the scenario object(s):
             for scenario in self.objects["scenario"]: init_scenario(scenario)
         else:
             raise NoScenarioFoundException
-        #Custom setup for the flight objects
-        for flight in self.objects["flight"]: init_flight(flight,self.objects["scenario"][0].date)
+        # Custom setup for the flight objects
+        for flight in self.objects["flight"]: init_flight(flight, self.objects["scenario"][0].date)
 
-    #takes a timedelta object and runs a tick of simulation
-    def tick(self,dt):
+    # takes a timedelta object and runs a tick of simulation
+    def tick(self, dt):
         events = []
         self.objects["scenario"][0].date += dt
 
         for flight in self.objects["flight"]:
-             events += update_flight_status(flight,self.objects["scenario"][0].date)
-        #it's the job of the server to handle these events
+            events += update_flight_status(flight, self.objects["scenario"][0].date)
+        # it's the job of the server to handle these events
         return events
