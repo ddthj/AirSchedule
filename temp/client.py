@@ -82,7 +82,6 @@ class Client:
 
     async def produce(self, ws):
         while self.running:
-            
             if len(self.pending_events) > 0:
                 pass
             await asyncio.sleep(.001)
