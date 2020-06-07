@@ -62,5 +62,13 @@ class Vec2:
         else:
             return Vec2(self[0] / other, self[1] / other)
 
+    def __eq__(self, other):
+        if self[0] == other[0] and self[1] == other[1]:
+            return True
+        return False
+
+    def copy(self):
+        return Vec2(self.data[:])
+
     def render(self):
-        return self[0], self[1]
+        return int(round(self[0])), int(round(self[1]))

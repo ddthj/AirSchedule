@@ -4,10 +4,12 @@ AirSchedule Client
 
 This file includes the client. The client communicates with the server to view and interact with the simulation state
 """
+import time
 import asyncio
 import datetime
 import websockets
 import logging
+from graphics import Gui, FlightElement
 
 logging.basicConfig(level=logging.INFO)
 
@@ -17,7 +19,7 @@ class Aircraft:
         data = string.split(",")
         self.name = data[1]
         self.tail_number = data[2]
-        self.box = None
+        self.element = None
 
 
 class Flight:
@@ -30,12 +32,27 @@ class Flight:
         self.arri_time = datetime.datetime.fromisoformat(data[5])
         self.aircraft = data[6]
         self.status = data[7]
-        self.box = None
+        self.element = None
 
     def resolve_reference(self, aircraft):
         for item in aircraft:
             if item.name == self.aircraft:
                 self.aircraft = item
+
+    def create_element(self, index):
+        self.element = FlightElement(
+            dept_text=self.dept_loc,
+            dept_time=str(self.dept_time.hour),
+            arri_text=self.arri_loc,
+            arri_time=str(self.arri_time.hour)
+        )
+        return self.element
+
+    def update_element(self):
+        self.element.dept_text = self.dept_loc
+        self.element.dept_time = str(self.dept_time.hour)
+        self.element.arri_text = self.arri_loc
+        self.element.arri_time = str(self.arri_time.hour)
 
 
 class Client:
@@ -47,7 +64,10 @@ class Client:
         self.objects = {"aircraft": [], "flight": []}
         self.time = None
         # whether or not we have parsed the sim state
-        self.ready = False
+        self.need_setup = False
+        self.gui = Gui()
+        self.gui.connecting_page()
+        self.gui.update(self)
 
     async def setup(self, state):
         blocks = state.split("`")
@@ -64,24 +84,27 @@ class Client:
         logging.info("parsed %s aircraft and %s flights" % (len(self.objects["aircraft"]), len(self.objects["flight"])))
         first = self.objects["flight"][0]
         logging.info("flight %s has linked to aircraft %s" % (first.name, first.aircraft.name))
-        self.ready = True
+        self.need_setup = True
+        self.gui.schedule_page(self)
 
     async def consume(self, ws):
         while self.running:
             try:
                 data = await ws.recv()
-                if not self.ready:
+                if not self.need_setup:
                     await self.setup(data)
                 else:
                     logging.info(data)
             except websockets.exceptions.ConnectionClosed:
                 logging.info("Connection Closed")
                 break
-
             await asyncio.sleep(.001)
 
     async def produce(self, ws):
         while self.running:
+            requests = self.gui.update(self)
+            if self.gui.quit:
+                self.running = False
             if len(self.pending_events) > 0:
                 pass
             await asyncio.sleep(.001)
@@ -93,8 +116,11 @@ class Client:
                 consume_task = asyncio.create_task(self.consume(ws))
                 produce_task = asyncio.create_task(self.produce(ws))
                 await asyncio.wait([consume_task, produce_task], return_when=asyncio.FIRST_COMPLETED)
-        except OSError:
-            logging.info("oopsie")
+        except OSError as e:
+            logging.info(e)
+            self.gui.connecting_failed_page()
+            self.gui.update(self)
+            time.sleep(1.75)
         except Exception as e:
             logging.info(e)
 

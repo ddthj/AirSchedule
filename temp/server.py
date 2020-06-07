@@ -87,11 +87,12 @@ class Server:
             print("Failed to send state to client, ", e)
 
     async def handler(self, ws, path):
-        print('user joined: ', ws, path)
+        print('user joined: ', ws)
         try:
             await self.join(ws)
             async for message in ws:
                 print(message)
+            print('user left: ', ws)
         except websockets.ConnectionClosed:
             print("user left improperly: ", ws)
         finally:

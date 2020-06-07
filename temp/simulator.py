@@ -36,7 +36,7 @@ def init_scenario(scenario):
     scenario.date = convert_datetime(scenario.date)
     try:
         scenario.timescale = float(scenario.timescale)
-    except:
+    except Exception:
         raise BadFormatException(scenario.timescale)
 
 
