@@ -9,9 +9,11 @@ import asyncio
 import datetime
 import websockets
 import logging
-from graphics import Gui, FlightElement
+from graphics import Gui, FlightElement, scroll_handler
+from vec2 import Vec2
 
 logging.basicConfig(level=logging.INFO)
+MINUTES_WIDTH = 4  # controls how compressed the time line is
 
 
 class Aircraft:
@@ -39,20 +41,46 @@ class Flight:
             if item.name == self.aircraft:
                 self.aircraft = item
 
-    def create_element(self, index):
+    def get_color(self):
+        if self.status == "scheduled":
+            return 50, 160, 160
+        elif self.status == "outgate":
+            return 50, 200, 200
+        elif self.status == "offground":
+            return 50, 160, 68
+        elif self.status == "onground":
+            return 50, 109, 160
+        elif self.status == "ingate":
+            return 78, 104, 128
+        else:
+            return 0, 0, 0
+
+    def create_element(self, gui, index):
+        box_width = (self.arri_time - self.dept_time).total_seconds() / 60
+        box_start = (gui.default_time - self.dept_time).total_seconds() / 60
         self.element = FlightElement(
+            size=Vec2(box_width * MINUTES_WIDTH, 35),
+            padding=Vec2(100 - (box_start * MINUTES_WIDTH), (1+index*35)),
+            color=self.get_color(),
+            text=self.name,
+            font=gui.font_25,
             dept_text=self.dept_loc,
-            dept_time=str(self.dept_time.hour),
+            dept_time=str(self.dept_time.time())[0:5],
             arri_text=self.arri_loc,
-            arri_time=str(self.arri_time.hour)
+            arri_time=str(self.arri_time.time())[0:5],
+            side_font=gui.font_15,
+            handlers=[scroll_handler]
         )
         return self.element
 
-    def update_element(self):
+    def update_element(self, client):
         self.element.dept_text = self.dept_loc
         self.element.dept_time = str(self.dept_time.hour)
         self.element.arri_text = self.arri_loc
         self.element.arri_time = str(self.arri_time.hour)
+        self.element.color = self.get_color()
+        self.element.padding = Vec2(self.element.padding[0], (client.objects["aircraft"].index(self.aircraft) + 1) * 35)
+        self.element.prep_side_text()
 
 
 class Client:
@@ -63,8 +91,7 @@ class Client:
         self.running = True
         self.objects = {"aircraft": [], "flight": []}
         self.time = None
-        # whether or not we have parsed the sim state
-        self.need_setup = False
+        self.need_setup = True
         self.gui = Gui()
         self.gui.connecting_page()
         self.gui.update(self)
@@ -84,14 +111,17 @@ class Client:
         logging.info("parsed %s aircraft and %s flights" % (len(self.objects["aircraft"]), len(self.objects["flight"])))
         first = self.objects["flight"][0]
         logging.info("flight %s has linked to aircraft %s" % (first.name, first.aircraft.name))
-        self.need_setup = True
+        self.need_setup = False
+
+        # GUI needs a start time, so we use the current sim time
+        self.gui.default_time = self.time
         self.gui.schedule_page(self)
 
     async def consume(self, ws):
         while self.running:
             try:
                 data = await ws.recv()
-                if not self.need_setup:
+                if self.need_setup:
                     await self.setup(data)
                 else:
                     logging.info(data)
@@ -102,7 +132,7 @@ class Client:
 
     async def produce(self, ws):
         while self.running:
-            requests = self.gui.update(self)
+            self.gui.update(self)
             if self.gui.quit:
                 self.running = False
             if len(self.pending_events) > 0:
@@ -112,7 +142,7 @@ class Client:
     async def run(self):
         try:
             async with websockets.connect("ws://localhost:51010") as ws:
-                logging.info("connected!")
+                logging.info("Connected!")
                 consume_task = asyncio.create_task(self.consume(ws))
                 produce_task = asyncio.create_task(self.produce(ws))
                 await asyncio.wait([consume_task, produce_task], return_when=asyncio.FIRST_COMPLETED)

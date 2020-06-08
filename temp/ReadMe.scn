@@ -21,7 +21,7 @@ objectType objectName															//
 
 scenario example
 	date 2020-01-01T02:30:00
-	timescale 200
+	timescale 100
 
 //Time values should follow ISO 8601, YYYY-MM-DDTHH:MM:SS
 
