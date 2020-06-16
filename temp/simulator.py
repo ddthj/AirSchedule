@@ -99,7 +99,14 @@ class Simulator:
 
     # takes a timedelta object and runs a tick of simulation
     def tick(self, dt):
-        events = []
+        events = [
+            Event(EVENT_ID_GENERATOR.get(),
+                  self.objects["scenario"][0],
+                  "date",
+                  self.objects["scenario"][0].date.isoformat(),
+                  (self.objects["scenario"][0].date + dt).isoformat()
+                  )
+        ]
         self.objects["scenario"][0].date += dt
 
         for flight in self.objects["flight"]:

@@ -3,13 +3,14 @@ AirSchedule Client
 2020
 
 This file includes the client. The client communicates with the server to view and interact with the simulation state
+ todo - finish handlers on clientgraphics / server side for client requests to move flights
 """
 import time
 import asyncio
 import datetime
 import websockets
 import logging
-from graphics import Gui, FlightElement, scroll_handler
+from graphics import Gui, FlightElement, scroll_handler, selection_handler, drag_handler
 from vec2 import Vec2
 
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +48,7 @@ class Flight:
         elif self.status == "outgate":
             return 50, 200, 200
         elif self.status == "offground":
-            return 50, 160, 68
+            return 50, 220, 68
         elif self.status == "onground":
             return 50, 109, 160
         elif self.status == "ingate":
@@ -62,6 +63,8 @@ class Flight:
             size=Vec2(box_width * MINUTES_WIDTH, 35),
             padding=Vec2(100 - (box_start * MINUTES_WIDTH), (1+index*35)),
             color=self.get_color(),
+            border=3,
+            border_color=(255, 0, 0),
             text=self.name,
             font=gui.font_25,
             dept_text=self.dept_loc,
@@ -69,17 +72,19 @@ class Flight:
             arri_text=self.arri_loc,
             arri_time=str(self.arri_time.time())[0:5],
             side_font=gui.font_15,
-            handlers=[scroll_handler]
+            handlers=[scroll_handler, selection_handler, drag_handler],
+            object=self
         )
         return self.element
 
     def update_element(self, client):
         self.element.dept_text = self.dept_loc
-        self.element.dept_time = str(self.dept_time.hour)
+        self.element.dept_time = str(self.dept_time.time())[0:5]
         self.element.arri_text = self.arri_loc
-        self.element.arri_time = str(self.arri_time.hour)
+        self.element.arri_time = str(self.arri_time.time())[0:5]
         self.element.color = self.get_color()
         self.element.padding = Vec2(self.element.padding[0], (client.objects["aircraft"].index(self.aircraft) + 1) * 35)
+        self.element.loc_mod = Vec2(0, 0)
         self.element.prep_side_text()
 
 
@@ -92,6 +97,7 @@ class Client:
         self.objects = {"aircraft": [], "flight": []}
         self.time = None
         self.need_setup = True
+        self.MINUTES_WIDTH = MINUTES_WIDTH
         self.gui = Gui()
         self.gui.connecting_page()
         self.gui.update(self)
@@ -117,6 +123,38 @@ class Client:
         self.gui.default_time = self.time
         self.gui.schedule_page(self)
 
+    async def set_attr(self, object_type, object_name, attribute_name, value):
+        for obj in self.objects[object_type]:
+            if obj.name == object_name:
+                obj.__setattr__(attribute_name, value)
+                break
+
+    async def handle_event(self, event):
+        # Handles events from the server
+        # Can't handle all new_value types, see long comment in event.py for a full decoder
+        data = event.split(",")
+        event_id = int(data[0])
+        object_type = data[1]
+        object_name = data[2]
+        attribute_name = data[3]
+        reference_type = None
+        reference_name = None
+        new_value = None
+        if len(data) > 5:
+            reference_type = data[4]
+            reference_type = data[5]
+        else:
+            new_value = data[4]
+
+        if object_type == "scenario" and attribute_name == "date":
+            self.time = datetime.datetime.fromisoformat(new_value)
+        elif object_type == "flight" and attribute_name == "status":
+            for flight in self.objects["flight"]:
+                if flight.name == object_name:
+                    flight.__setattr__(attribute_name, new_value)
+                    flight.update_element(self)
+                    break
+
     async def consume(self, ws):
         while self.running:
             try:
@@ -124,6 +162,7 @@ class Client:
                 if self.need_setup:
                     await self.setup(data)
                 else:
+                    await self.handle_event(data)
                     logging.info(data)
             except websockets.exceptions.ConnectionClosed:
                 logging.info("Connection Closed")

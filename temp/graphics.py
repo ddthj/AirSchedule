@@ -1,20 +1,62 @@
 import pygame
 from vec2 import Vec2
+import time
+from datetime import timedelta
+
+def inside(element, po, split=False):
+    tl = element.location
+    br = element.location + element.size
+    if tl[0] < po[0] < br[0] and tl[1] < po[1] < br[1]:
+        if split:
+            return True,True
+        return True
+    if split:
+        return tl[0] < po[0] < br[0], tl[1] < po[1] < br[1]
+    return False
 
 
 def scroll_handler(element, client, gui):
-    scroll_dif = gui.scroll - element.scroll_distance
-    if scroll_dif != 0:
-        s = Vec2(scroll_dif, 0)
-        element.location += s
-        if len(element.text) > 0:
-            element.text_location += s
-            if hasattr(element, "dept_text"):
-                element.location_tl += s
-                element.location_bl += s
-                element.location_tr += s
-                element.location_br += s
-    element.scroll_distance = gui.scroll
+    element.loc_mod += Vec2(gui.scroll, 0)
+
+
+def time_handler(element, client, gui):
+    element.loc_mod += Vec2(((client.time - gui.default_time).total_seconds() / 60) * client.MINUTES_WIDTH, 0)
+
+
+def selection_handler(element, client, gui):
+    if gui.click and inside(element, gui.mouse_start) and element.object.status == "scheduled":
+        element.selected = True
+    elif gui.double_click and inside(element, gui.mouse_start, split=True)[1]:
+        if (element.location + element.size)[0] > gui.mouse_start[0] and element.object.status == "scheduled":
+            element.selected = True
+    if (not gui.click and not gui.double_click) or element.object.status != "scheduled":
+        if element.selected:
+            element.deselected = True
+        else:
+            element.deselected = False
+        element.selected = False
+
+
+def drag_handler(element, client, gui):
+    drag = gui.mouse_pos - gui.mouse_start
+    ac_change = drag[1] // 35
+    time_change = drag[0] // (client.MINUTES_WIDTH*5)
+    if element.selected:
+        element.loc_mod += Vec2(time_change * client.MINUTES_WIDTH * 5, ac_change*35)
+    if element.deselected:
+        flight = element.object
+        if ac_change != 0:
+            ac_list = client.objects["aircraft"]
+            old_ac_name = flight.aircraft.name
+            new_ac_name = ac_list[ac_list.index(flight.aircrat) + ac_change].name
+            client.pending_events.append("flight,%s,aircraft,%s,%s" % (flight.name, old_ac_name, new_ac_name))
+        if time_change != 0:
+            old_dp = flight.dept_time.isoformat()
+            old_ar = flight.arri_time.isoformat()
+            new_dp = (flight.dept_time + timedelta(minutes=-time_change)).isoformat()
+            new_ar = (flight.arri_time + timedelta(minutes=-time_change)).isoformat()
+            client.pending_events.append("flight,%s,dept_time,%s,%s" % (flight.name, old_dp, new_dp))
+            client.pending_events.append("flight,%s,arri_time,%s,%s" % (flight.name, old_ar, new_ar))
 
 
 class Element:
@@ -22,9 +64,11 @@ class Element:
         self.size = Vec2(kwargs.get("size", (0, 0)))
         self.align = kwargs.get("align", "none")
         self.padding = Vec2(kwargs.get("padding", (0, 0)))
-        self.scroll_distance = 0
         self.border = kwargs.get("border", 0)
+        self.border_color = kwargs.get("border_color", (0, 0, 0))
+        self.only_border = kwargs.get("only_border", False)
         self.color = kwargs.get("color", (0, 0, 0))
+        self.loc_mod = Vec2(0, 0)  # used to move an element from its default location
 
         self.text = kwargs.get("text", "")
         self.text_align = kwargs.get("text-align", "center")
@@ -43,11 +87,13 @@ class Element:
                 self.size = Vec2(1920, 1050)
         self.location = None
         self.rendered_text, self.text_location = self.prep_text()
+        self.selected = False
+        self.deselected = False
 
     def get_loc(self):
         if self.location is None:
             if self.parent is None:
-                self.location = self.padding.copy()
+                self.location = self.padding.copy() + self.loc_mod
             else:
                 m_half = self.size / 2
                 p_loc = self.parent.get_loc()
@@ -66,8 +112,8 @@ class Element:
                     align = (p_half * Vec2(1, 2)) - (m_half * Vec2(1, 2))
                 else:
                     align = Vec2(0, 0)
-                self.location = p_loc + align + self.padding
-        return self.location
+                self.location = p_loc + align + self.padding + self.loc_mod
+        return self.location + self.loc_mod
 
     def prep_text(self):
         if len(self.text) > 0:
@@ -89,6 +135,7 @@ class Element:
             return None, None
 
     def update(self, client, gui):
+        self.loc_mod = 0
         for handler in self.handlers:
             handler(self, client, gui)
         if self.get_loc()[0] > gui.resolution[0] or self.location[0] + self.size[0] < 0:
@@ -98,7 +145,10 @@ class Element:
 
     def render(self, window):
         if self.visible:
-            pygame.draw.rect(window, self.color, (*self.get_loc(), *self.size), self.border)
+            if not self.only_border:
+                pygame.draw.rect(window, self.color, (*self.get_loc(), *self.size), 0)
+            if self.border > 0:
+                pygame.draw.rect(window, self.border_color, (*self.get_loc(), *self.size), self.border)
             if self.rendered_text is not None:
                 window.blit(self.rendered_text, self.text_location.render())
 
@@ -106,6 +156,7 @@ class Element:
 class FlightElement(Element):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
+        self.object = kwargs.get("object", None)
         self.dept_text = kwargs.get("dept_text", "")
         self.dept_time = kwargs.get("dept_time", "")
         self.arri_text = kwargs.get("arri_text", "")
@@ -135,12 +186,14 @@ class FlightElement(Element):
 
     def render(self, window):
         if self.visible:
-            pygame.draw.rect(window, self.color, (*self.get_loc().render(), *self.size), self.border)
-            window.blit(self.rendered_text, self.text_location.render())
-            window.blit(self.rendered_tl, self.location_tl.render())
-            window.blit(self.rendered_bl, self.location_bl.render())
-            window.blit(self.rendered_tr, self.location_tr.render())
-            window.blit(self.rendered_br, self.location_br.render())
+            pygame.draw.rect(window, self.color, (*self.get_loc().render(), *self.size), 0)
+            window.blit(self.rendered_text, (self.text_location + self.loc_mod).render())
+            window.blit(self.rendered_tl, (self.location_tl + self.loc_mod).render())
+            window.blit(self.rendered_bl, (self.location_bl + self.loc_mod).render())
+            window.blit(self.rendered_tr, (self.location_tr + self.loc_mod).render())
+            window.blit(self.rendered_br, (self.location_br + self.loc_mod).render())
+            if self.selected:
+                pygame.draw.rect(window, self.border_color, (*self.get_loc(), *self.size), self.border)
 
 
 class Gui:
@@ -163,6 +216,13 @@ class Gui:
         self.clock = pygame.time.Clock()
         self.default_time = None
 
+        self.click = False
+        self.click_time = time.time()
+        self.double_click = False
+        self.drag = False
+        self.mouse_start = Vec2(0, 0)
+        self.mouse_pos = Vec2(0, 0)
+
     def connecting_page(self):
         self.elements = [Element(
             parent=None,
@@ -182,9 +242,9 @@ class Gui:
     def schedule_page(self, client):
         self.elements = []
 
-        for i in range(1, 35):
-            if i - 1 < len(client.objects["aircraft"]):
-                text = client.objects["aircraft"][i - 1].tail_number
+        for i in range(35):
+            if i < len(client.objects["aircraft"]):
+                text = client.objects["aircraft"][i].tail_number
                 # drawing the flights for a given aircraft
                 for flight in client.objects["flight"]:
                     if flight.aircraft.tail_number == text:
@@ -200,13 +260,12 @@ class Gui:
                         font=self.font_15
                         ))
         # drawing red timeline
-
         self.elements.append(
             Element(
                 size=Vec2(2, self.resolution[1]),
                 padding=Vec2(100, 0),
                 color=(255, 0, 0),
-                handlers=[scroll_handler]
+                handlers=[scroll_handler, time_handler]
             )
         )
         # drawing horizontal borders
@@ -216,6 +275,7 @@ class Gui:
                         padding=Vec2(0, (i - 1) * 35),
                         color=(0, 0, 0),
                         border=1,
+                        only_border=True
                         ))
 
     def update(self, client):
@@ -224,6 +284,7 @@ class Gui:
         self.window.fill(self.bg_color)
         requests = []
         self.events = pygame.event.get()
+        self.mouse_pos = Vec2(pygame.mouse.get_pos())
         for event in self.events:
             if event.type == pygame.QUIT:
                 self.quit = True
@@ -234,6 +295,20 @@ class Gui:
                     self.scroll += 25
                 if self.scroll > 0:
                     self.scroll = 0
+                if event.button == 1:
+                    if time.time() - self.click_time < 0.25:
+                        self.click = False
+                        self.double_click = True
+                        self.mouse_start = self.mouse_pos.copy()
+                    else:
+                        self.click = True
+                        self.click_time = time.time()
+                        self.mouse_start = self.mouse_pos.copy()
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.click = self.double_click = False
+
+        # self.drag = (self.click or self.double_click) and time.time() - self.click_time > 0.1
 
         for element in self.elements:
             element.update(client, self)
