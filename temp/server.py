@@ -86,6 +86,7 @@ class Server:
         except Exception as e:
             print("Failed to send state to client, ", e)
 
+    # Handles each new websocket connection in essentially a new thread
     async def handler(self, ws, path):
         print('user joined: ', ws)
         try:

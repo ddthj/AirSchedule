@@ -1,32 +1,46 @@
+"""
+AirSchedule Graphics
+2020
+
+This file includes the GUI and the elements that it is built out of
+"""
 import pygame
 from vec2 import Vec2
 import time
 from datetime import timedelta
 
+
+# Checks to see if a point is inside an element
 def inside(element, po, split=False):
+    # "Split" enables returning separate booleans for vertical and horizontal containment
     tl = element.location
     br = element.location + element.size
     if tl[0] < po[0] < br[0] and tl[1] < po[1] < br[1]:
         if split:
-            return True,True
+            return True, True
         return True
     if split:
         return tl[0] < po[0] < br[0], tl[1] < po[1] < br[1]
     return False
 
 
+# A handler that causes an element to scroll horizontally depending on a value inside the GUI
 def scroll_handler(element, client, gui):
     element.loc_mod += Vec2(gui.scroll, 0)
 
 
+# A handler that updates the position of the red timeline
 def time_handler(element, client, gui):
     element.loc_mod += Vec2(((client.time - gui.default_time).total_seconds() / 60) * client.MINUTES_WIDTH, 0)
 
 
+# A handler that determines whether or not an element has been selected or deselected
+# Deselection is used to spawn event requests that are sent back to the server
 def selection_handler(element, client, gui):
     if gui.click and inside(element, gui.mouse_start) and element.object.status == "scheduled":
         element.selected = True
     elif gui.double_click and inside(element, gui.mouse_start, split=True)[1]:
+        # Select a whole row when double-clicked
         if (element.location + element.size)[0] > gui.mouse_start[0] and element.object.status == "scheduled":
             element.selected = True
     if (not gui.click and not gui.double_click) or element.object.status != "scheduled":
@@ -37,59 +51,80 @@ def selection_handler(element, client, gui):
         element.selected = False
 
 
+# Handler that allows flights to be dragged around the schedule, provided that they haven't departed yet
+# Snaps the element to an aircraft and in increments of 5 minutes
 def drag_handler(element, client, gui):
     drag = gui.mouse_pos - gui.mouse_start
     ac_change = drag[1] // 35
     time_change = drag[0] // (client.MINUTES_WIDTH*5)
     if element.selected:
         element.loc_mod += Vec2(time_change * client.MINUTES_WIDTH * 5, ac_change*35)
+
+    # If the element is moved and deselected we create an event request to send to the server
     if element.deselected:
         flight = element.object
         if ac_change != 0:
             ac_list = client.objects["aircraft"]
             old_ac_name = flight.aircraft.name
             new_ac_name = ac_list[ac_list.index(flight.aircrat) + ac_change].name
-            client.pending_events.append("flight,%s,aircraft,%s,%s" % (flight.name, old_ac_name, new_ac_name))
+            client.new_events.append("flight,%s,aircraft,%s,%s" % (flight.name, old_ac_name, new_ac_name))
         if time_change != 0:
             old_dp = flight.dept_time.isoformat()
             old_ar = flight.arri_time.isoformat()
             new_dp = (flight.dept_time + timedelta(minutes=-time_change)).isoformat()
             new_ar = (flight.arri_time + timedelta(minutes=-time_change)).isoformat()
-            client.pending_events.append("flight,%s,dept_time,%s,%s" % (flight.name, old_dp, new_dp))
-            client.pending_events.append("flight,%s,arri_time,%s,%s" % (flight.name, old_ar, new_ar))
+            client.new_events.append("flight,%s,dept_time,%s,%s" % (flight.name, old_dp, new_dp))
+            client.new_events.append("flight,%s,arri_time,%s,%s" % (flight.name, old_ar, new_ar))
 
 
+# Building block of the gui
 class Element:
     def __init__(self, parent=None, **kwargs):
         self.size = Vec2(kwargs.get("size", (0, 0)))
+        # how the element is aligned in comparison to its parent. supports center, left, top, etc
         self.align = kwargs.get("align", "none")
         self.padding = Vec2(kwargs.get("padding", (0, 0)))
+        # thickness of the element's border. 0 for no border
         self.border = kwargs.get("border", 0)
         self.border_color = kwargs.get("border_color", (0, 0, 0))
+        # whether or not to render a background to this element
         self.only_border = kwargs.get("only_border", False)
         self.color = kwargs.get("color", (0, 0, 0))
-        self.loc_mod = Vec2(0, 0)  # used to move an element from its default location
+        # used to move an element from its default location temporarily
+        self.loc_mod = Vec2(0, 0)
 
+        # Text to display on the element
         self.text = kwargs.get("text", "")
         self.text_align = kwargs.get("text-align", "center")
         self.text_padding = kwargs.get("text-padding", Vec2(0, 0))
         self.font = kwargs.get("font", None)
         self.text_color = kwargs.get("text-color", (0, 0, 0))
 
+        # List of handler functions
         self.handlers = kwargs.get("handlers", [])
+        # Whether or not the element should render
         self.visible = kwargs.get("visible", True)
 
+        # If the element has a parent
         self.parent = parent
+
+        # Setting a default size depending on whether or not there's a parent element
         if self.size == (0, 0):
             if self.parent is not None:
                 self.size = self.parent.size
             else:
                 self.size = Vec2(1920, 1050)
+
+        # Locations are created once, and modified as necessary by self.loc_mod when rendering
         self.location = None
+        # Same with text
         self.rendered_text, self.text_location = self.prep_text()
+
+        # Whether or not the element has been selected or deselected
         self.selected = False
         self.deselected = False
 
+    # finds the location of this element, taking into consideration its alignment/padding/loc_mod/etc
     def get_loc(self):
         if self.location is None:
             if self.parent is None:
@@ -115,6 +150,8 @@ class Element:
                 self.location = p_loc + align + self.padding + self.loc_mod
         return self.location + self.loc_mod
 
+    # finds the location of the element's text, and renders it to a surface so that we can reuse the surface
+    # because rendering text in pygame is expensive
     def prep_text(self):
         if len(self.text) > 0:
             if self.font is not None:
@@ -134,6 +171,8 @@ class Element:
         else:
             return None, None
 
+    # calls all of the handlers if there are any, and determines if this element is onscreen
+    # if it's offscreen we make it invisible
     def update(self, client, gui):
         self.loc_mod = 0
         for handler in self.handlers:
@@ -143,6 +182,7 @@ class Element:
         else:
             self.visible = True
 
+    # renders the element
     def render(self, window):
         if self.visible:
             if not self.only_border:
@@ -153,6 +193,7 @@ class Element:
                 window.blit(self.rendered_text, self.text_location.render())
 
 
+# A flight element is an extension of Element that has extra text for the dept/arri times and locations
 class FlightElement(Element):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
@@ -196,8 +237,10 @@ class FlightElement(Element):
                 pygame.draw.rect(window, self.border_color, (*self.get_loc(), *self.size), self.border)
 
 
+# The GUI is how you interact and view the client.
 class Gui:
     def __init__(self):
+        # Prepping pygame and the gui window
         pygame.init()
         pygame.font.init()
         self.resolution = (1920, 1050)
@@ -205,24 +248,30 @@ class Gui:
         pygame.display.set_caption("AirSchedule")
         pygame.display.set_icon(pygame.image.load("icon.png"))
         self.bg_color = (100, 100, 100)
+
+        # Loading up some commonly used fonts
         self.font_15 = pygame.font.SysFont("courier", 15)
         self.font_25 = pygame.font.SysFont("courier", 25)
         self.font_30 = pygame.font.SysFont("courier", 30)
-        self.quit = False
 
+        self.quit = False
+        # The elements currently active
         self.elements = []
+        # Pygame events
         self.events = []
         self.scroll = 0
         self.clock = pygame.time.Clock()
+        # The reference time that everything is referenced to
         self.default_time = None
 
+        # Mouse activity
         self.click = False
         self.click_time = time.time()
         self.double_click = False
-        self.drag = False
         self.mouse_start = Vec2(0, 0)
         self.mouse_pos = Vec2(0, 0)
 
+    # The following few functions replace self.elements with whatever they need to construct the desired view
     def connecting_page(self):
         self.elements = [Element(
             parent=None,
@@ -239,9 +288,11 @@ class Gui:
             font=self.font_30
         )]
 
+    # main page
     def schedule_page(self, client):
         self.elements = []
-
+        # Creating all the aircraft elements, and all the flight elements for each aircraft
+        # Populates an entire column with aircraft elements, but leaves extras blank
         for i in range(35):
             if i < len(client.objects["aircraft"]):
                 text = client.objects["aircraft"][i].tail_number
@@ -278,11 +329,12 @@ class Gui:
                         only_border=True
                         ))
 
+    # Causes the gui to update all of its events, elements, and render
     def update(self, client):
         # self.clock.tick()
         # print(self.clock.get_time())
         self.window.fill(self.bg_color)
-        requests = []
+        # Refreshing pygame and getting mouse/key events
         self.events = pygame.event.get()
         self.mouse_pos = Vec2(pygame.mouse.get_pos())
         for event in self.events:
@@ -307,11 +359,9 @@ class Gui:
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
                     self.click = self.double_click = False
-
-        # self.drag = (self.click or self.double_click) and time.time() - self.click_time > 0.1
-
+        # Update and render elements
         for element in self.elements:
             element.update(client, self)
             element.render(self.window)
+        # update display
         pygame.display.update()
-        return requests

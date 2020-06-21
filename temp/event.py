@@ -6,7 +6,7 @@ This file contains the event class, which is used to keep track of
 changing object attributes as the simulation progresses
 
 Events are used to update clients on the state of the simulation
-And support undo actions
+And can scale to support undo actions
 """
 from setup import SimObject
 
