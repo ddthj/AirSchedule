@@ -92,9 +92,12 @@ class Flight:
         self.element.arri_text = self.arri_loc
         self.element.arri_time = str(self.arri_time.time())[0:5]
         self.element.color = self.get_color()
-        # todo - replace the element.padding[0] with a calculated value that takes into account time changes
-        self.element.padding = Vec2(self.element.padding[0], (client.objects["aircraft"].index(self.aircraft) + 1) * 35)
+        box_start = (client.gui.default_time - self.dept_time).total_seconds() / 60
+        self.element.padding = Vec2(100 - (box_start * MINUTES_WIDTH),
+                                    client.objects["aircraft"].index(self.aircraft) * 35)
         self.element.loc_mod = Vec2(0, 0)
+        self.element.location = None  # Clear the location so that it gets recalculated the next time we ask for it
+        self.element.rendered_text, self.element.text_location = self.element.prep_text()
         self.element.prep_side_text()
 
 
@@ -154,7 +157,11 @@ class Client:
     async def set_attr(self, object_type, object_name, attribute_name, value):
         for obj in self.objects[object_type]:
             if obj.name == object_name:
+                print(obj.__getattribute__(attribute_name), value)
                 obj.__setattr__(attribute_name, value)
+                if object_type == "flight":
+                    # updates the flight's element to reflect the new data
+                    obj.update_element(self)
                 break
 
     # Handles events from the server
@@ -170,11 +177,11 @@ class Client:
         new_value = None
         if len(data) > 5:
             reference_type = data[4]
-            reference_type = data[5]
+            reference_name = data[5]
         else:
             new_value = data[4]
 
-        # todo - check pending_events to see if we can remove any of those
+        # todo - check pending_events to see if we can remove any of those. Required in order to support undo
 
         if object_type == "scenario":
             if attribute_name == "date":
@@ -184,6 +191,12 @@ class Client:
                 await self.set_attr("flight", object_name, attribute_name, new_value)
             elif attribute_name == "arri_time" or attribute_name == "dept_time":
                 await self.set_attr("flight", object_name, attribute_name, datetime.datetime.fromisoformat(new_value))
+            elif attribute_name == "aircraft":
+                for item in self.objects["aircraft"]:
+                    if item.name == reference_name:
+                        aircraft = item
+                        break
+                await self.set_attr("flight", object_name, attribute_name, aircraft)
 
     # Handles messages coming from the server
     async def consume(self, ws):

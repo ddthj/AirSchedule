@@ -12,7 +12,8 @@ from simulator import Simulator
 import asyncio
 import websockets
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
+from event import Event, EVENT_ID_GENERATOR
 
 
 # Encoding the relevant state information that a client needs upon connecting
@@ -62,6 +63,7 @@ class Server:
 
     # Sends a list of events to all connected clients
     async def send_events(self, events):
+        self.event_history += events
         for event in events:
             for ws in self.clients:
                 try:
@@ -70,6 +72,42 @@ class Server:
                 except Exception as e:
                     print("failed to send %s to %s... %s" % (event.encode(), ws, e))
         print("sent %s events to %s clients" % (len(events), len(self.clients)))
+
+    # Decodes a client request to change the sim state, and generates an event
+    async def decode_request(self, request):
+        data = request.split(",")
+        object_type = data[0]
+        object_name = data[1]
+        attribute_name = data[2]
+        old_value = data[3]
+        new_value = data[4]
+
+        if object_type == "flight":
+            flight = self.sim.get_object(object_type, object_name)
+            if attribute_name == "aircraft":
+                # we check to see if the object is still how the client expected it when making the request
+                if flight.aircraft.object_name != old_value:
+                    # if it's not, we make the "new" value equal the current value, and send that back as an event
+                    new_value = flight.aircraft.object_name
+                flight.__setattr__(attribute_name, self.sim.get_object(attribute_name, new_value))
+                await self.send_events([Event(EVENT_ID_GENERATOR.get(),
+                                              flight,
+                                              attribute_name,
+                                              flight.aircraft.object_name,
+                                              self.sim.get_object(attribute_name, new_value)
+                                              )
+                                        ])
+            elif attribute_name == "arri_time" or attribute_name == "dept_time":
+                if flight.__getattribute__(attribute_name).isoformat() != old_value:
+                    new_value = flight.__getattribute__(attribute_name).isoformat()
+                flight.__setattr__(attribute_name, datetime.fromisoformat(new_value))
+                await self.send_events([Event(EVENT_ID_GENERATOR.get(),
+                                              flight,
+                                              attribute_name,
+                                              flight.__getattribute__(attribute_name),
+                                              datetime.fromisoformat(new_value)
+                                              )
+                                        ])
 
     # Sends pertinent information about the simulation state to a given client
     # Information includes: current event #, date, aircraft, flights
@@ -93,6 +131,7 @@ class Server:
             await self.join(ws)
             async for message in ws:
                 print(message)
+                await self.decode_request(message)
             print('user left: ', ws)
         except websockets.ConnectionClosed:
             print("user left improperly: ", ws)
@@ -108,7 +147,6 @@ class Server:
                 self.last_tick = time.time()
                 dt = timedelta(seconds=(self.time_between_ticks * self.sim.objects["scenario"][0].timescale))
                 events = self.sim.tick(dt)
-                self.event_history += events
                 await self.send_events(events)
 
 

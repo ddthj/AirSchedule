@@ -54,25 +54,37 @@ def selection_handler(element, client, gui):
 # Handler that allows flights to be dragged around the schedule, provided that they haven't departed yet
 # Snaps the element to an aircraft and in increments of 5 minutes
 def drag_handler(element, client, gui):
+    # how far the mouse has moved
     drag = gui.mouse_pos - gui.mouse_start
+    # ac_change keeps track of how many rows we have dragged the flight through
+    # we also make sure that the user can't drag the flight to an empty row (No aircraft)
+    flight = element.object
+    ac_list = client.objects["aircraft"]
+    ac_index = ac_list.index(element.object.aircraft)
+    lower_limit = 0 - ac_index
+    upper_limit = len(ac_list) - ac_index - 1
     ac_change = drag[1] // 35
+    if ac_change < lower_limit:
+        ac_change = lower_limit
+    elif ac_change > upper_limit:
+        ac_change = upper_limit
+    # how much time we have passed
     time_change = drag[0] // (client.MINUTES_WIDTH*5)
+    # modifies the loc_mod of the selected flight(s) so that we can see them being dragged around
     if element.selected:
         element.loc_mod += Vec2(time_change * client.MINUTES_WIDTH * 5, ac_change*35)
 
     # If the element is moved and deselected we create an event request to send to the server
     if element.deselected:
-        flight = element.object
         if ac_change != 0:
-            ac_list = client.objects["aircraft"]
             old_ac_name = flight.aircraft.name
-            new_ac_name = ac_list[ac_list.index(flight.aircrat) + ac_change].name
+            new_ac_name = ac_list[ac_index + ac_change].name
             client.new_events.append("flight,%s,aircraft,%s,%s" % (flight.name, old_ac_name, new_ac_name))
         if time_change != 0:
             old_dp = flight.dept_time.isoformat()
             old_ar = flight.arri_time.isoformat()
-            new_dp = (flight.dept_time + timedelta(minutes=-time_change)).isoformat()
-            new_ar = (flight.arri_time + timedelta(minutes=-time_change)).isoformat()
+            new_dp = (flight.dept_time + timedelta(minutes=time_change*5)).isoformat()
+            new_ar = (flight.arri_time + timedelta(minutes=time_change*5)).isoformat()
             client.new_events.append("flight,%s,dept_time,%s,%s" % (flight.name, old_dp, new_dp))
             client.new_events.append("flight,%s,arri_time,%s,%s" % (flight.name, old_ar, new_ar))
 

@@ -97,6 +97,13 @@ class Simulator:
         # Custom setup for the flight objects
         for flight in self.objects["flight"]: init_flight(flight, self.objects["scenario"][0].date)
 
+    # returns a desired object given the type and name
+    def get_object(self, object_type, object_name):
+        for item in self.objects[object_type]:
+            if item.object_name == object_name:
+                return item
+        return None
+
     # takes a timedelta object and runs a tick of simulation
     def tick(self, dt):
         events = [
