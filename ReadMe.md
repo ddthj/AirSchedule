@@ -16,4 +16,7 @@ Any number of clients (dispatch stations) can be connected to the server and mod
 3. Clients can click and drag flights in 5 minute increments horizontally, or between aircraft vertically.
 4. Clients can double-click and drag to select and move an entire line of flights.
 
+# Screenshots
 
+![](https://github.com/ddthj/AirSchedule/blob/master/Picture%201.PNG?raw=True)
+![](https://github.com/ddthj/AirSchedule/blob/master/Gif%201.gif?raw=true)
